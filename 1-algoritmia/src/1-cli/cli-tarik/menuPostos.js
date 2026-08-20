@@ -1,3 +1,66 @@
+import readlineSync from "readline-sync";
+import { CONCELHOS_VALIDOS, CONECTORES_VALIDOS, ESTADOS_POSTO_VALIDOS } from "../../utils/constantes.js";
+import { lerNumeroPositivo, lerOpcaoValida, lerTextoObrigatorio } from "../../utils/validacao.js";
+
+const prompt = readlineSync.question;
+
+export function menuPostos() {
+  console.log('1. Listar Postos cadastrados');
+  console.log('2. Inserir novo Posto');
+  console.log('3. Atualizar Posto');
+  console.log('4. Remover Posto');
+  console.log('0. Sair');
+
+  const opcao = prompt('Escolha uma opção: ');
+
+  switch (opcao) {
+    case '1':
+      //Aqui entra um console.log("Com a função de listar os postos cadastrados que estão no repositório")!
+      console.log('TODO: submenu de Listar Postos ainda não implementado.\n');
+      break;
+    case '2':
+      function inserirNovoPosto() {
+        const codigoPosto = lerTextoObrigatorio("Digite o código do novo Posto: ");
+        const concelhoPosto = lerOpcaoValida("Digite o concelho do novo Posto: ", CONCELHOS_VALIDOS);
+        const potenciaPosto = lerNumeroPositivo("Digite a potência do novo Posto: ");
+        const conectorPosto = lerOpcaoValida("Digite o tipo de conector do novo Posto: ", CONECTORES_VALIDOS);
+        const estadoPosto = lerOpcaoValida("Digite o estado atual do novo Posto: ", ESTADOS_POSTO_VALIDOS);
+
+        const novoPosto = {
+          codigo: codigoPosto, concelho: concelhoPosto,
+          potenciaKw: potenciaPosto, tipoConector: conectorPosto, estado: estadoPosto
+        }; return novoPosto
+      }
+
+
+
+      //Chamar a função para inserir posto na lista
+      //Passar uma mensgem confirmando que foi inserido um posto na lista
+      //Perguntar se quer inserir mais um ou voltar ao menu principal
+
+      console.log('TODO: submenu de Inserir Postos ainda não implementado.\n');
+      break;
+    case '3':
+      console.log('TODO: submenu de Atualizar Posto ainda não implementado.\n');
+      break;
+    case '4':
+      console.log('TODO: submenu de Remover Posto ainda não implementado.\n');
+      break;
+    case '0':
+      console.log('Até já!');
+      return;
+    default:
+      console.log('Opção inválida.\n');
+  }
+
+  menuPostos();
+}
+
+
+
+
+
+
 /*
   SUBMENU DE POSTOS  (Tarik)  —  PASSO 3
   ======================================

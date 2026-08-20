@@ -1,0 +1,16 @@
+# dependências (reinstalam-se com npm install)
+node_modules/
+
+# ficheiros temporários do editor
+tempCodeRunnerFile.*
+
+# segredos
+.env
+
+# logs
+*.log
+npm-debug.log*
+
+# sistema operativo
+Thumbs.db
+.DS_Store
