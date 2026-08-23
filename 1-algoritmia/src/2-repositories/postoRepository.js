@@ -1,4 +1,26 @@
+import path from 'node:path'; //biblioteca do proprio node para definir caminhos de ficheiros
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'; //ler ficheiro, escrever ficheiro, verificar se existe ficheiro
 
+const caminhoPostos = path.join(import.meta.dirname, '../../data/postos.json'); //define o endereço do ficheiro e o nome do 
+                                                                                //ficheiro em uma constante
+
+export function listarPostos() {
+  if (!existsSync(caminhoPostos))                        //verifica se existe ficheiro naquele endereço/nome que indicamos 
+    return [];                                           // se não existir retorna um array vazio e já sai da função, a linha a seguir nem chega a rodar
+  const conteudo = readFileSync(caminhoPostos, 'utf-8'); //Caso exista já o ficheiro ele lê o conteudo 'utf-8' converte os dados para string
+  if (conteudo.trim() === "")                            //se existir um ficheiro mas estiver vazio, faz o mesmo que antes, 
+    return [];                                           //retorna um array vazio e já sai da função, a linha a seguir nem chega a rodar 
+  return JSON.parse(conteudo);                           //Caso tenha algo, reconverte o texto para um array e retorna esse array
+}
+
+
+
+
+
+
+function gravarPostos(postos) {                                           //sem export. só usada aqui dentro pois reescreve nos dados o que foi alterado
+  writeFileSync(caminhoPostos, JSON.stringify(postos, null, 2), 'utf-8'); //Função utilizada por outras funções
+}
 
 
 

@@ -1,6 +1,7 @@
 import readlineSync from "readline-sync";
 import { CONCELHOS_VALIDOS, CONECTORES_VALIDOS, ESTADOS_POSTO_VALIDOS } from "../../utils/constantes.js";
 import { lerNumeroPositivo, lerOpcaoValida, lerTextoObrigatorio } from "../../utils/validacao.js";
+import { listarPostos } from "../../2-repositories/postoRepository.js";
 
 const prompt = readlineSync.question;
 
@@ -15,8 +16,8 @@ export function menuPostos() {
 
   switch (opcao) {
     case '1':
-      //Aqui entra um console.log("Com a função de listar os postos cadastrados que estão no repositório")!
-      console.log('TODO: submenu de Listar Postos ainda não implementado.\n');
+      console.log(`Os postos cadastrados atualmente no nosso sistema são: `);
+      console.log(listarPostos());
       break;
     case '2':
       function inserirNovoPosto() {
@@ -31,7 +32,7 @@ export function menuPostos() {
           potenciaKw: potenciaPosto, tipoConector: conectorPosto, estado: estadoPosto
         }; return novoPosto
       }
-
+      inserirNovoPosto();
 
 
       //Chamar a função para inserir posto na lista
@@ -56,7 +57,7 @@ export function menuPostos() {
   menuPostos();
 }
 
-
+menuPostos();
 
 
 
