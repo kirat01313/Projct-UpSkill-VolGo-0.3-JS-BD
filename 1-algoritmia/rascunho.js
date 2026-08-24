@@ -46,3 +46,26 @@
 
   ============================================================
 */
+
+
+
+//tarifarios:
+
+let tarifarios = [
+  { nome: 'Normal', precoPorKwh: 0.30, taxaAtivacao: 0 },
+  { nome: 'Verde', precoPorKwh: 0.25, taxaAtivacao: 0.50 },
+];
+
+
+function listarTarifarios() {
+  return tarifarios;
+}
+
+function inserirTarifario(novoTarifario) {
+   if (tarifarios.some(t => t.nome === novoTarifario.nome)) {
+    return null; // Tarifário já existe
+   } else {
+    tarifarios.push(novoTarifario);
+    return novoTarifario;
+   }
+}

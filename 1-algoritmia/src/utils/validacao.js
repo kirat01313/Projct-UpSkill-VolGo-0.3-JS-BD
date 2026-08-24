@@ -59,3 +59,11 @@
      NO REPOSITÓRIO   -> duplicados e integridade
                          (só ele conhece todos os registos)
 */
+
+export function campoObrigatorio(valor) {
+  return valor !== undefined && valor !== null && String(valor).trim() !== '';
+}
+
+export function valorPositivo(valor) {
+  return typeof valor === 'number' && valor > 0;
+}
