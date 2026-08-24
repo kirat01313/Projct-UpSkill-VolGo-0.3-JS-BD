@@ -1,3 +1,8 @@
+export function iniciarMenu() {
+  console.log('Bem-vindo ao VoltGo — sempre a carregar!\n');
+  menuPrincipal();
+}
+
 /*
   MENU PRINCIPAL  —  PASSO 2
   ==========================

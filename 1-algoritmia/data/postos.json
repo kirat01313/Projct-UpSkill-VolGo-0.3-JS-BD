@@ -1,23 +1,30 @@
 [
   {
     "codigo": "P001",
-    "concelho": "Braga",
+    "concelho": "braga",
     "potenciaKw": 22,
-    "tipoConector": "Type 2",
+    "tipoConector": "type2",
     "estado": "ativo"
   },
   {
     "codigo": "P002",
-    "concelho": "Porto",
+    "concelho": "porto",
     "potenciaKw": 50,
-    "tipoConector": "CCS",
+    "tipoConector": "ccs",
     "estado": "ativo"
   },
   {
     "codigo": "P003",
-    "concelho": "Braga",
+    "concelho": "braga",
     "potenciaKw": 150,
-    "tipoConector": "CCS",
+    "tipoConector": "ccs",
     "estado": "manutencao"
+  },
+  {
+    "codigo": "P004",
+    "concelho": "braga",
+    "potenciaKw": 33,
+    "tipoConector": "ccs",
+    "estado": "ativo"
   }
 ]
