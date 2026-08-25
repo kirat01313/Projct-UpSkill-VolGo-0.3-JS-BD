@@ -51,22 +51,23 @@
 
 import path from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { campoObrigatorio } from '../utils/validacao.js';
+import { campoObrigatorio, dataValida } from '../utils/validacao.js';
+import { listarPostos } from './postoRepository.js';
+import { listarTarifarios } from './tarifarioRepository.js';
 
-// TODO: validar dataHoraInicio com dataValida() quando essa função existir em utils/validacao.js
-// TODO: confirmar que posto/cliente/tarifario existem de facto (precisa dos repositórios deles prontos)
+// TODO: confirmar que o cliente existe de facto (falta o clienteRepository do Tarik)
 
-const caminhoCarregamentos = path.join(import.meta.dirname, '../../data/carregamentos.json');
+const caminhoCarregamentos = path.join(import.meta.dirname, '../../data/carregamentos.json');   //define o caminho do arquivo JSON que armazenará os dados dos carregamentos
 
-export function listarCarregamentos() {
-  if (!existsSync(caminhoCarregamentos)) return [];
-  const conteudo = readFileSync(caminhoCarregamentos, 'utf-8');
-  if (conteudo.trim() === '') return [];
-  return JSON.parse(conteudo);
+export function listarCarregamentos() {                                                         // lista todos os carregamentos do repositório
+  if (!existsSync(caminhoCarregamentos)) return [];                                             //verifica se o arquivo de carregamentos existe; se não existir, retorna um array vazio
+  const conteudo = readFileSync(caminhoCarregamentos, 'utf-8');                                 //verifica se o arquivo de carregamentos existe; se não existir, retorna um array vazio
+  if (conteudo.trim() === '') return [];                                                        //verifica se o conteúdo do arquivo está vazio; se estiver, retorna um array vazio
+  return JSON.parse(conteudo);                                                                  //converte a string JSON em um array de objetos e retorna esse array
 }
 
-function gravarCarregamentos(carregamentos) {
-  writeFileSync(caminhoCarregamentos, JSON.stringify(carregamentos, null, 2), 'utf-8');
+function gravarCarregamentos(carregamentos) {                                                   //converte o array de objetos em uma string JSON formatada e grava no arquivo de carregamentos
+  writeFileSync(caminhoCarregamentos, JSON.stringify(carregamentos, null, 2), 'utf-8');         //converte o array de objetos em uma string JSON formatada e grava no arquivo de carregamentos
 }
 
 export function inserirCarregamento(novoCarregamento) {
@@ -82,17 +83,45 @@ export function inserirCarregamento(novoCarregamento) {
   if (!campoObrigatorio(novoCarregamento.dataHoraInicio)) {
     return null; // data de início vazia, recusa
   }
+  if (!dataValida(novoCarregamento.dataHoraInicio)) {                                     // verifica se o texto da data/hora de início é uma data reconhecível
+    return null; // data de início inválida, recusa
+  }
 
-  const carregamentos = listarCarregamentos();
+  // Integridade referencial "na entrada": posto e tarifário precisam existir de facto
+  const postos = listarPostos();                                                          // busca todos os postos já cadastrados
+  let postoExiste = false;                                                                 // bandeira que começa falsa e vira true se achar o posto
+  for (let i = 0; i < postos.length; i++) {                                                // percorre todos os postos existentes
+    if (postos[i].codigo.toLowerCase() === novoCarregamento.posto.toLowerCase()) {         // compara o código do posto com o que veio no carregamento, ignorando maiúsculas/minúsculas
+      postoExiste = true;                                                                  // achou, levanta a bandeira
+    }
+  }
+  if (!postoExiste) {
+    return null; // posto não existe, recusa
+  }
 
-  let novoId = 1;
-  for (let i = 0; i < carregamentos.length; i++) {
-    if (carregamentos[i].id >= novoId) {
-      novoId = carregamentos[i].id + 1;
+  const tarifarios = listarTarifarios();                                                   // busca todos os tarifários já cadastrados
+  let tarifarioExiste = false;                                                             // mesma lógica de bandeira, agora para o tarifário
+  for (let i = 0; i < tarifarios.length; i++) {                                            // percorre todos os tarifários existentes
+    if (tarifarios[i].nome.toLowerCase() === novoCarregamento.tarifario.toLowerCase()) {   // compara o nome do tarifário, ignorando maiúsculas/minúsculas
+      tarifarioExiste = true;                                                              // achou, levanta a bandeira
+    }
+  }
+  if (!tarifarioExiste) {
+    return null; // tarifário não existe, recusa
+  }
+
+  // TODO: confirmar também que o cliente existe 
+
+  const carregamentos = listarCarregamentos();                                           // lista todos os carregamentos do repositório
+
+  let novoId = 1;                                                                        // começa com 1, mas vai aumentando se já houver carregamentos
+  for (let i = 0; i < carregamentos.length; i++) {                                       // percorre todos os carregamentos para encontrar o maior id existente e definir o próximo id disponível
+    if (carregamentos[i].id >= novoId) {                                                 // se o id do carregamento atual for maior ou igual ao novoId, atualiza o novoId para ser um a mais que o id atual
+      novoId = carregamentos[i].id + 1;                                                  // define o próximo id disponível como um a mais que o maior id existente
     }
   }
 
-  const carregamentoCompleto = {
+  const carregamentoCompleto = {                                                         // cria um objeto completo do carregamento com todos os campos necessários, preenchendo os valores padrão para dataHoraFim, energiaKwh, custo e estado se não forem fornecidos
     id: novoId,
     posto: novoCarregamento.posto,
     cliente: novoCarregamento.cliente,

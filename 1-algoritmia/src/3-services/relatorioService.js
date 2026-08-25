@@ -99,12 +99,12 @@ export function relatorioCarregamentosPorPosto() {
 }
 
 export function relatorioCarregamentosPorCliente() {
-  const carregamentos = listarCarregamentos();
+  const carregamentos = listarCarregamentos();                                                // lista todos os carregamentos do repositório
 
-  const linhas = [];// array para guardar só os carregamentos que interessam ao relatório
-  for (let i = 0; i < carregamentos.length; i++) {// percorre todos os carregamentos
+  const linhas = [];                                                                          // array para guardar só os carregamentos que interessam ao relatório
+  for (let i = 0; i < carregamentos.length; i++) {                                            // percorre todos os carregamentos
     if (carregamentos[i].estado === 'terminado' || carregamentos[i].estado === 'faturado') {
-      linhas.push({// guarda só os campos que interessam ao relatório
+      linhas.push({                                                                           // guarda só os campos que interessam ao relatório
         cliente: carregamentos[i].cliente,
         energiaKwh: carregamentos[i].energiaKwh,
         custo: carregamentos[i].custo,
