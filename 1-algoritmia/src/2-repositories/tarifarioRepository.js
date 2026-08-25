@@ -31,16 +31,21 @@
   não se percebe se o cálculo está certo.
 */
 
+import path from 'node:path';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { campoObrigatorio, valorPositivo } from '../utils/validacao.js';
 
-// TODO: trocar por leitura/escrita em data/tarifarios.json quando o CRUD estiver testado
-let tarifarios = [
-  { nome: 'Normal', precoPorKwh: 0.30, taxaAtivacao: 0 },
-  { nome: 'Verde', precoPorKwh: 0.25, taxaAtivacao: 0.50 },
-];
+const caminhoTarifarios = path.join(import.meta.dirname, '../../data/tarifarios.json');
 
 export function listarTarifarios() {
-  return tarifarios;
+  if (!existsSync(caminhoTarifarios)) return [];
+  const conteudo = readFileSync(caminhoTarifarios, 'utf-8');
+  if (conteudo.trim() === '') return [];
+  return JSON.parse(conteudo);
+}
+
+function gravarTarifarios(tarifarios) {
+  writeFileSync(caminhoTarifarios, JSON.stringify(tarifarios, null, 2), 'utf-8');
 }
 
 export function inserirTarifario(novoTarifario) {
@@ -50,25 +55,32 @@ export function inserirTarifario(novoTarifario) {
   if (!valorPositivo(novoTarifario.precoPorKwh)) {
     return null; // preço inválido, recusa
   }
+
+  const tarifarios = listarTarifarios();
   if (tarifarios.some(t => t.nome === novoTarifario.nome)) {
     return null; // já existe
   }
 
   tarifarios.push(novoTarifario);
+  gravarTarifarios(tarifarios);
   return novoTarifario;
 }
 
-export function atualizarTarifario(nome, dados) {
+export function atualizarTarifario(nome, dados) { // nome é a chave, não se pode alterar
    const tarifarios = listarTarifarios();
-   const index = tarifarios.findIndex(t => t.nome === nome);
+   const index = tarifarios.findIndex(t => t.nome === nome);// procura pelo nome
    if (index === -1) return null; // não encontrado
-   tarifarios[index] = { ...tarifarios[index], ...dados };
+   tarifarios[index] = { ...tarifarios[index], ...dados }; // atualiza os campos com os novos dados
+   gravarTarifarios(tarifarios);
    return tarifarios[index];
 }
 
 export function removerTarifario(nome) {
+   // TODO: integridade referencial ainda por fazer aqui — ver nota no topo do arquivo
+   const tarifarios = listarTarifarios();
    const index = tarifarios.findIndex(t => t.nome === nome);
    if (index === -1) return false;
    tarifarios.splice(index, 1);
+   gravarTarifarios(tarifarios);
    return true;
 }

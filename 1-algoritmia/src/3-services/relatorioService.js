@@ -68,3 +68,56 @@
    ser reutilizado — por exemplo, para exportar para ficheiro,
    que é uma das sugestões de requisito diferenciador.)
 */
+
+import { listarCarregamentos } from '../2-repositories/carregamentoRepository.js';
+
+export function relatorioCarregamentosPorPosto() {
+  const carregamentos = listarCarregamentos();
+
+  // 1. Filtra só os carregamentos terminados ou faturados,
+  //    guardando só os campos que interessam ao relatório
+  const linhas = [];
+  for (let i = 0; i < carregamentos.length; i++) {
+    if (carregamentos[i].estado === 'terminado' || carregamentos[i].estado === 'faturado') {
+      linhas.push({ //faz um push no array linhas com os campos que interessam
+        posto: carregamentos[i].posto,
+        energiaKwh: carregamentos[i].energiaKwh,
+        custo: carregamentos[i].custo,
+      });
+    }
+  }
+
+  // 2. Soma a energia e o custo de tudo o que ficou na lista
+  let totalEnergia = 0;
+  let totalCusto = 0;
+  for (let i = 0; i < linhas.length; i++) { // percorre a lista filtrada, não o array original
+    totalEnergia += linhas[i].energiaKwh;// soma a energia
+    totalCusto += linhas[i].custo;// soma o custo
+  }
+
+  return { linhas, totalEnergia, totalCusto };// devolve os dados para o menu imprimir
+}
+
+export function relatorioCarregamentosPorCliente() {
+  const carregamentos = listarCarregamentos();
+
+  const linhas = [];// array para guardar só os carregamentos que interessam ao relatório
+  for (let i = 0; i < carregamentos.length; i++) {// percorre todos os carregamentos
+    if (carregamentos[i].estado === 'terminado' || carregamentos[i].estado === 'faturado') {
+      linhas.push({// guarda só os campos que interessam ao relatório
+        cliente: carregamentos[i].cliente,
+        energiaKwh: carregamentos[i].energiaKwh,
+        custo: carregamentos[i].custo,
+      });
+    }
+  }
+
+  let totalEnergia = 0;
+  let totalCusto = 0;
+  for (let i = 0; i < linhas.length; i++) {
+    totalEnergia += linhas[i].energiaKwh;
+    totalCusto += linhas[i].custo;
+  }
+
+  return { linhas, totalEnergia, totalCusto };
+}

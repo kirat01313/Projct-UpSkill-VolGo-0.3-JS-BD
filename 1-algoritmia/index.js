@@ -16,3 +16,7 @@
 
   Corre-se com:  node index.js
 */
+
+import { iniciarMenu } from './src/1-cli/menu.js';
+
+iniciarMenu();
