@@ -49,7 +49,7 @@ function gravarTarifarios(tarifarios) {
   writeFileSync(caminhoTarifarios, JSON.stringify(tarifarios, null, 2), 'utf-8');         //converte o array de objetos em uma string JSON formatada e grava no arquivo de tarifários
 }
 
-export function inserirTarifario(novoTarifario) {
+export function inserirTarifario(novoTarifario) { 
   if (!campoObrigatorio(novoTarifario.nome)) {
     return null; // nome vazio, recusa
   }

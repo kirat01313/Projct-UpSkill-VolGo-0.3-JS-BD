@@ -2,6 +2,8 @@ import readlineSync from 'readline-sync';
 
 import { menuTarifarios } from './cli-fred/menuTarifarios.js';
 import { menuCarregamentos } from './cli-fred/menuCarregamentos.js';
+import { menuPostos } from './cli-tarik/menuPostos.js';
+import { menuClientes } from './cli-tarik/menuClientes.js';
 
 export function iniciarMenu() {
   console.log('Bem-vindo ao VoltGo — sempre a carregar!\n');
@@ -22,9 +24,9 @@ function menuPrincipal() {
     opcao = readlineSync.question('Escolha uma opção: ');
 
     if (opcao === '1') {
-      console.log('Ainda não implementado.');
+      menuPostos();
     } else if (opcao === '2') {
-      console.log('Ainda não implementado.');
+      menuClientes();
     } else if (opcao === '3') {
       menuTarifarios();
     } else if (opcao === '4') {

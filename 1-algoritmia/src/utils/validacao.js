@@ -1,140 +1,106 @@
-/*
-ISSO VAI FOI TRANSFORMADO NO CÓDIGO A SEGUIR
-
-    case '2':
-      let codigoPosto = prompt(`Digite o código do novo Posto: `);
-      while (codigoPosto === "") {
-        console.log(`O código do novo Posto inserido não é válido no momento. Insira um conselho válido ["Braga", "Faro", "Porto" ou "Lisboa"]: `);
-        concelhoPosto = prompt(`Digite novamente o código do novo Posto: `).trim().toLowerCase();
-      }
-      let concelhoPosto = prompt(`Digite o concelho do novo Posto: `).trim().toLowerCase();
-      while (!CONCELHOS_VALIDOS.includes(concelhoPosto)) {
-        console.log(`O conselho inserido não é válido no momento. Insira um conselho válido ["Braga", "Faro", "Porto" ou "Lisboa"]: `);
-        concelhoPosto = prompt(`Digite novamente o concelho do novo Posto: `).trim().toLowerCase();
-      }
-      let potenciaPosto = Number(prompt(`Digite a potência do novo Posto: `));
-      while (potenciaPosto <= 0 || potenciaPosto !== Number) {
-        console.log(`A potência inserida não é válida. Insira apenas números válidos: `);
-        potenciaPosto = Number(prompt(`Digite novamente a potência do novo Posto: `).trim().toLowerCase());
-      }
-      let conectorPosto = prompt(`Digite o tipo do conector do novo Posto["Type2" ou "CCS"]: `).trim().toLowerCase();
-      while (!CONECTORES_VALIDOS.includes(conectorPosto)) {
-        console.log(`O conector inserido não é válido.Insira um conector válido["Type2" ou "CCS"]: `);
-        conectorPosto = prompt(`Digite novamente o conector desse novo Posto: `).trim().toLowerCase();
-      }
-      let estadoPosto = prompt(`Digite o estado do novo Posto["ativo" ou "manutencao"]: `).trim().toLowerCase();
-      while (!ESTADOS_POSTO_VALIDOS.includes(estadoPosto)) {
-        console.log(`O estado inserido não é válido.Insira um estado válido["ativo","manutencao"]: `);
-        estadoPosto = prompt(`Digite novamente o estado desse novo Posto: `).trim().toLowerCase();
-      }
-
-*/ //NESSE CÓDIGO:
-
 import readlineSync from "readline-sync";
 const prompt = readlineSync.question;
 
 export function lerOpcaoValida(mensagem, listaValidos) { //mensagem é o "prompt(`Digite o código do novo Posto: `);"
-  let valor = prompt(mensagem).trim().toLowerCase();     //listaValidos vem da constantes.js que lista valores que a empresa usa
-  while (!listaValidos.includes(valor)) {                //checa se o valor inserido no prompt está incluido na lista de valores válidos
-    console.log(`Valor Inválido. Valores Válidos: [${listaValidos.join(", ")}]`); //
-    valor = prompt(mensagem).trim().toLowerCase();
-  }
-  return valor;
+    let valor = prompt(mensagem).trim().toLowerCase();     //listaValidos vem da constantes.js que lista valores que a empresa usa
+    while (!listaValidos.includes(valor)) {                //checa se o valor inserido no prompt está incluido na lista de valores válidos
+        console.log(`Valor Inválido. Valores Válidos: [${listaValidos.join(", ")}]`); //
+        valor = prompt(mensagem).trim().toLowerCase();
+    }
+    return valor;
 }
 
-export function lerTextoObrigatorio(mensagem) {
-  let valor = prompt(mensagem).trim();
-  while (valor === "") {
-    console.log("Este campo é obrigatório. Deve inserir um valor.");
-    valor = prompt(mensagem).trim();
-  }
-  return valor;
+export function lerTextoObrigatorio(mensagem) { //função que lê um texto do usuário, repetindo a solicitação até que o valor não seja vazio
+    let valor = prompt(mensagem).trim();
+    while (valor === "") {
+        console.log("Este campo é obrigatório. Deve inserir um valor.");
+        valor = prompt(mensagem).trim();
+    }
+    return valor;
 }
 
-export function lerNumeroPositivo(mensagem) {
-  let valor = Number(prompt(mensagem).trim());
-  while (Number.isNaN(valor) || valor <= 0) {
-    console.log("Insira um valor numérico maior que zero.");
-    valor = Number(prompt(mensagem).trim());
-  }
-  return valor;
+export function lerNumeroPositivo(mensagem) { //função que lê um número positivo do usuário, repetindo a solicitação até que o valor seja válido
+    let valor = Number(prompt(mensagem).trim());
+    while (Number.isNaN(valor) || valor <= 0) {
+        console.log("Insira um valor numérico maior que zero.");
+        valor = Number(prompt(mensagem).trim());
+    }
+    return valor;
+}
+
+export function lerNif(mensagem) { //função que lê um NIF do usuário, repetindo a solicitação até que o valor seja válido (9 dígitos)
+    let valor = prompt(mensagem).trim();
+    while (valor.length !== 9 || !soDigitos(valor)) {
+        console.log("O NIF tem de ter exatamente 9 dígitos.");
+        valor = prompt(mensagem).trim();
+    }
+    return valor;
+}
+
+export function lerTelefone(mensagem) { //função que lê um contacto telefónico do usuário, repetindo a solicitação até que o valor seja válido (9 dígitos)
+    let valor = prompt(mensagem).trim();
+    while (valor.length !== 9 || !soDigitos(valor)) { //sodigitos() é uma função auxiliar que verifica se a string contém apenas dígitos
+        console.log("O contacto tem de ter 9 dígitos.");
+        valor = prompt(mensagem).trim();
+    }
+    return valor;
+}
+
+export function lerEmail(mensagem) { //função que lê um email do usuário, repetindo a solicitação até que o valor seja válido (contendo "@" e ".")
+    let valor = prompt(mensagem).trim().toLowerCase();
+    while (valor.indexOf("@") < 1 || valor.indexOf(".") < valor.indexOf("@") + 2 || valor.indexOf(".") === valor.length - 1) {
+        console.log("Email inválido. Exemplo: ana@mail.pt");
+        valor = prompt(mensagem).trim().toLowerCase();
+    }
+    return valor;
+}
+
+export function lerMatricula(mensagem) { //função que lê uma matrícula do usuário, repetindo a solicitação até que o valor seja válido (formato XX-XX-XX)
+    let valor = prompt(mensagem).trim().toUpperCase();
+    while (valor.length !== 8 || valor[2] !== "-" || valor[5] !== "-") {
+        console.log("Matrícula inválida. Formato: XX-XX-XX (ex.: AA-01-BB).");
+        valor = prompt(mensagem).trim().toUpperCase();
+    }
+    return valor;
+}
+
+export function lerData(mensagem) { //função que lê uma data do usuário, repetindo a solicitação até que o valor seja válido (formato AAAA-MM-DD)
+    let valor = prompt(mensagem).trim();
+    while (!dataValida1(valor)) {
+        console.log("Data inválida. Use o formato AAAA-MM-DD (ex.: 1990-05-12).");
+        valor = prompt(mensagem).trim();
+    }
+    return valor;
+}
+
+//------------- Auxiliares das funções de validação -------------
+
+function dataValida1(data) { //função auxiliar que verifica se uma string é uma data válida no formato AAAA-MM-DD
+    if (data.length !== 10) return false;
+    if (data[4] !== "-" || data[7] !== "-") return false;
+    const ano = Number(data.substring(0, 4)); //substring(0, 4) pega os 4 primeiros caracteres da string sem incluir o índice final (0, 1, 2 e 3)
+    const mes = Number(data.substring(5, 7));
+    const dia = Number(data.substring(8, 10));
+    if (Number.isNaN(ano) || Number.isNaN(mes) || Number.isNaN(dia)) return false;
+    if (mes < 1 || mes > 12) return false;
+    if (dia < 1 || dia > 31) return false;
+    if (ano < 1900 || ano > 2026) return false;
+    return true;
+}
+
+function soDigitos(texto) { //função auxiliar que verifica se uma string contém apenas dígitos
+    for (let i = 0; i < texto.length; i++) {
+        if (texto[i] < "0" || texto[i] > "9") return false;
+    }
+    return true;
 }
 
 
-
-
-
-
-
-
-
-
-/*
-  UTILS / VALIDAÇÃO
-  =================
-
-  Ferramentas GENÉRICAS, usadas por todos.
-  Vai-se acrescentando conforme a necessidade aparece — não escrever
-  tudo de uma vez.
-
-  ------------------------------------------------------------
-  O QUE VAI AQUI vs. O QUE NÃO VAI
-  ------------------------------------------------------------
-
-  VAI:    funções que serviriam em QUALQUER projeto
-          (validar campo vazio, validar data, validar número positivo)
-
-  NÃO VAI: funções específicas de uma entidade
-          (criarCliente, listarPostos — essas ficam no repositório dela)
-
-  A regra: código que só serve uma entidade fica COM essa entidade.
-
-  ------------------------------------------------------------
-  FUNÇÕES QUE VÃO SER PRECISAS
-  ------------------------------------------------------------
-
-  campoObrigatorio(valor)
-      -> true se tem conteúdo, false se está vazio ou só espaços
-      USADA EM: todos os "inserir", antes de gravar
-
-  valorPositivo(valor)
-      -> true se é número maior que 0
-      USADA EM: potenciaKw (postos), precoPorKwh (tarifários),
-                energiaKwh e custo (carregamentos)
-
-  dataValida(valor)
-      -> true se é uma data que existe
-      USADA EM: dataNascimento (clientes),
-                dataHoraInicio / dataHoraFim (carregamentos)
-
-  nifValido(nif)
-      -> true se tem 9 dígitos
-      USADA EM: inserirCliente
-
-  ------------------------------------------------------------
-  SUGESTÃO: uma função de leitura validada
-  ------------------------------------------------------------
-  Se derem por vocês a repetir o mesmo do...while em todos os menus
-  ("repete até o valor estar na lista"), vale a pena extrair para aqui
-  uma função tipo:
-
-      lerOpcaoValida(mensagem, listaDeValoresValidos)
-
-  MAS: só fazer isso DEPOIS de sentirem a repetição.
-  Escrever a abstração antes do problema aparecer só complica.
-
-  ------------------------------------------------------------
-  ONDE SE VALIDA O QUÊ (importante)
-  ------------------------------------------------------------
-     NO MENU          -> formato (é número? está na lista?)
-     NO REPOSITÓRIO   -> duplicados e integridade
-                         (só ele conhece todos os registos)
-*/
-
-export function campoObrigatorio(valor) {
-  return valor !== undefined && valor !== null && String(valor).trim() !== '';
+//Funções de validação do Fred )
+export function campoObrigatorio(valor) { //função que verifica se um valor é obrigatório (não pode ser undefined, null ou string vazia)
+    return valor !== undefined && valor !== null && String(valor).trim() !== ''; //retorna true se o valor não for undefined, null ou string vazia (após remover espaços)
 }
 
-export function valorPositivo(valor) {
-  return typeof valor === 'number' && valor > 0;
+export function valorPositivo(valor) { //função que verifica se um valor é um número positivo (maior que zero)
+    return typeof valor === 'number' && valor > 0;
 }

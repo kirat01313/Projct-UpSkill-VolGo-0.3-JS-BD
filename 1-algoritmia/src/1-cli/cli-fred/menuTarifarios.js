@@ -80,3 +80,4 @@ export function menuTarifarios() { // função que mostra o submenu de Tarifári
     }
   }
 }
+

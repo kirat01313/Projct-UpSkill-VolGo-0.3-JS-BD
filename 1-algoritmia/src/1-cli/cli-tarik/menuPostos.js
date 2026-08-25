@@ -74,17 +74,17 @@ export function menuPostos() {
       }
       break;
     }
-    case '4':
-      const excluirPosto = excluirPosto1(lercodigoPosto("excluído")); //Função que exclui o posto do JSON e retorna true se excluiu, ou false se não encontrou o posto
-      if (excluirPosto === null) {
-        break;
-      }
-      if (excluirPosto === false) {
-        console.log("Não existe um posto com esse código ou ele possui carregamentos associados.\n"); //Mensagem de erro caso o posto não exista ou tenha carregamentos associados
-      } else {
+    case '4': {
+      const codigoPosto = lercodigoPosto("excluído"); //Guarda o código do posto a ser excluído
+      if (codigoPosto === null) break;              //Se o usuário escolher cancelar a operação, sai do case
+
+      if (excluirPosto1(codigoPosto)) { //Função que exclui o posto do JSON e retorna true se conseguiu excluir, ou false se não conseguiu (porque tem carregamentos associados)
         console.log("Posto excluído com sucesso.\n");
+      } else {
+        console.log("Não foi possível remover: tem carregamentos associados.\n");
       }
       break;
+    };
     case '0':
       console.log('Até já!');
       return;
@@ -95,7 +95,6 @@ export function menuPostos() {
   menuPostos(); //função recursiva para repetir o menu até que o usuário escolha sair
 }
 
-menuPostos();
 
 
 

@@ -1,0 +1,10 @@
+[
+  {
+    "nif": "123456789",
+    "nome": "Teste2",
+    "dataNascimento": "1900-03-07",
+    "contactoTelefone": "987654321",
+    "contactoEmail": "teste2@testemail.com",
+    "matricula": "BB-22-BB"
+  }
+]
