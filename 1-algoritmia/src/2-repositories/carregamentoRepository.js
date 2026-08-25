@@ -49,27 +49,24 @@
   outro ler energia, dá undefined e ninguém percebe porquê.
 */
 
+import path from 'node:path';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { campoObrigatorio } from '../utils/validacao.js';
 
-// TODO: trocar por leitura/escrita em data/carregamentos.json quando o CRUD estiver testado
 // TODO: validar dataHoraInicio com dataValida() quando essa função existir em utils/validacao.js
 // TODO: confirmar que posto/cliente/tarifario existem de facto (precisa dos repositórios deles prontos)
-let carregamentos = [
-  {
-    id: 1,
-    posto: 'P001',
-    cliente: '123456789',
-    tarifario: 'Normal',
-    dataHoraInicio: '2026-08-20 09:00',
-    dataHoraFim: '2026-08-20 10:00',
-    energiaKwh: 12,
-    custo: 3.6,
-    estado: 'terminado',
-  },
-];
+
+const caminhoCarregamentos = path.join(import.meta.dirname, '../../data/carregamentos.json');
 
 export function listarCarregamentos() {
-  return carregamentos;
+  if (!existsSync(caminhoCarregamentos)) return [];
+  const conteudo = readFileSync(caminhoCarregamentos, 'utf-8');
+  if (conteudo.trim() === '') return [];
+  return JSON.parse(conteudo);
+}
+
+function gravarCarregamentos(carregamentos) {
+  writeFileSync(caminhoCarregamentos, JSON.stringify(carregamentos, null, 2), 'utf-8');
 }
 
 export function inserirCarregamento(novoCarregamento) {
@@ -85,6 +82,8 @@ export function inserirCarregamento(novoCarregamento) {
   if (!campoObrigatorio(novoCarregamento.dataHoraInicio)) {
     return null; // data de início vazia, recusa
   }
+
+  const carregamentos = listarCarregamentos();
 
   let novoId = 1;
   for (let i = 0; i < carregamentos.length; i++) {
@@ -106,20 +105,25 @@ export function inserirCarregamento(novoCarregamento) {
   };
 
   carregamentos.push(carregamentoCompleto);
+  gravarCarregamentos(carregamentos);
   return carregamentoCompleto;
 }
 
 export function atualizarCarregamento(id, dados) {
+  const carregamentos = listarCarregamentos();
   const index = carregamentos.findIndex(c => c.id === id);
   if (index === -1) return null; // não encontrado
   carregamentos[index] = { ...carregamentos[index], ...dados };
+  gravarCarregamentos(carregamentos);
   return carregamentos[index];
 }
 
 export function removerCarregamento(id) {
   // Sem integridade referencial aqui — nenhuma entidade aponta para um carregamento
+  const carregamentos = listarCarregamentos();
   const index = carregamentos.findIndex(c => c.id === id);
   if (index === -1) return false;
   carregamentos.splice(index, 1);
+  gravarCarregamentos(carregamentos);
   return true;
 }

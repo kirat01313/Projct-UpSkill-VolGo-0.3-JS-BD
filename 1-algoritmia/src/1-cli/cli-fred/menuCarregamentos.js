@@ -44,3 +44,66 @@
   EXISTEM mesmo. Senao cria-se um carregamento que aponta para o vazio —
   exatamente o problema que a integridade referencial evita.
 */
+
+import readlineSync from 'readline-sync';
+import { lerOpcaoValida } from '../../utils/validacao.js';
+import {
+  listarCarregamentos,
+  inserirCarregamento,
+  atualizarCarregamento,
+  removerCarregamento,
+} from '../../2-repositories/carregamentoRepository.js';
+
+const ESTADOS_VALIDOS = ['em curso', 'terminado', 'faturado', 'anulado']; //informação que vai ser usada para validar o estado do carregamento
+
+export function menuCarregamentos() { //função que exibe o menu de carregamentos e permite ao usuário interagir com ele
+  let opcao = ''; 
+
+  while (opcao !== '0') {
+    console.log('\n--- Carregamentos ---');
+    console.log('1. Inserir  2. Listar  3. Atualizar  4. Remover  0. Voltar');
+    opcao = readlineSync.question('Opção: ');
+
+    if (opcao === '1') {
+      // TODO: confirmar que posto/cliente/tarifario existem de facto
+      // (precisa dos repositórios deles prontos — por agora só valida que não vêm vazios)
+      const posto = readlineSync.question('Código do posto: ');
+      const cliente = readlineSync.question('NIF do cliente: ');
+      const tarifario = readlineSync.question('Nome do tarifário: ');
+      const dataHoraInicio = readlineSync.question('Data/hora de início (AAAA-MM-DD HH:mm): ');
+
+      const resultado = inserirCarregamento({ posto, cliente, tarifario, dataHoraInicio });
+      if (resultado === null) {
+        console.log('Não foi possível inserir — falta algum campo obrigatório.');
+      } else {
+        console.log('Carregamento inserido:', resultado);
+      }
+    } else if (opcao === '2') {
+      console.log(listarCarregamentos());
+    } else if (opcao === '3') {
+      const id = Number(readlineSync.question('ID do carregamento: '));
+      const estado = lerOpcaoValida('Novo estado (em curso/terminado/faturado/anulado): ', ESTADOS_VALIDOS);
+
+      const dadosNovos = { estado };
+      if (estado === 'terminado' || estado === 'faturado') {
+        dadosNovos.dataHoraFim = readlineSync.question('Data/hora de fim (AAAA-MM-DD HH:mm): ');
+        dadosNovos.energiaKwh = Number(readlineSync.question('Energia fornecida (kWh): '));
+        dadosNovos.custo = Number(readlineSync.question('Custo (EUR): '));
+      }
+
+      const resultado = atualizarCarregamento(id, dadosNovos);
+      if (resultado === null) {
+        console.log('Carregamento não encontrado.');
+      } else {
+        console.log('Carregamento atualizado:', resultado);
+      }
+    } else if (opcao === '4') {
+      const id = Number(readlineSync.question('ID do carregamento a remover: '));
+
+      const removido = removerCarregamento(id);
+      console.log(removido ? 'Carregamento removido.' : 'Carregamento não encontrado.');
+    } else if (opcao !== '0') {
+      console.log('Opção inválida.');
+    }
+  }
+}

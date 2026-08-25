@@ -1,6 +1,42 @@
+import readlineSync from 'readline-sync';
+
+import { menuTarifarios } from './cli-fred/menuTarifarios.js';
+import { menuCarregamentos } from './cli-fred/menuCarregamentos.js';
+
 export function iniciarMenu() {
   console.log('Bem-vindo ao VoltGo — sempre a carregar!\n');
   menuPrincipal();
+}
+
+function menuPrincipal() {
+  let opcao = '';
+
+  while (opcao !== '0') {
+    console.log('\n=== VoltGo ===');
+    console.log('1. Gerir Postos');
+    console.log('2. Gerir Clientes');
+    console.log('3. Gerir Tarifários');
+    console.log('4. Gerir Carregamentos');
+    console.log('5. Relatórios');
+    console.log('0. Sair');
+    opcao = readlineSync.question('Escolha uma opção: ');
+
+    if (opcao === '1') {
+      console.log('Ainda não implementado.');
+    } else if (opcao === '2') {
+      console.log('Ainda não implementado.');
+    } else if (opcao === '3') {
+      menuTarifarios();
+    } else if (opcao === '4') {
+      menuCarregamentos();
+    } else if (opcao === '5') {
+      console.log('Ainda não implementado.');
+    } else if (opcao === '0') {
+      console.log('Até já!');
+    } else {
+      console.log('Opção inválida.');
+    }
+  }
 }
 
 /*
