@@ -43,7 +43,7 @@ export function listarTarifarios() {
   return tarifarios;
 }
 
-export function inserirTarifario(novoTarifario) {
+export function inserirTarifario(novoTarifario) { 
   if (!campoObrigatorio(novoTarifario.nome)) {
     return null; // nome vazio, recusa
   }
@@ -60,9 +60,9 @@ export function inserirTarifario(novoTarifario) {
 
 export function atualizarTarifario(nome, dados) {
    const tarifarios = listarTarifarios();
-   const index = tarifarios.findIndex(t => t.nome === nome);
+   const index = tarifarios.findIndex(t => t.nome === nome); // devolve o índice do tarifário com o nome fornecido, ou -1 se não encontrado
    if (index === -1) return null; // não encontrado
-   tarifarios[index] = { ...tarifarios[index], ...dados };
+   tarifarios[index] = { ...tarifarios[index], ...dados }; 
    return tarifarios[index];
 }
 

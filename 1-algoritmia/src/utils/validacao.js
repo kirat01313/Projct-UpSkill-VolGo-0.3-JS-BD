@@ -132,9 +132,9 @@ export function lerNumeroPositivo(mensagem) {
 */
 
 export function campoObrigatorio(valor) {
-  return valor !== undefined && valor !== null && String(valor).trim() !== '';
+  return valor !== undefined && valor !== null && String(valor).trim() !== ''; //retorna true se o valor não for undefined, null ou string vazia (após remover espaços)
 }
 
 export function valorPositivo(valor) {
-  return typeof valor === 'number' && valor > 0;
+  return typeof valor === 'number' && valor > 0; 
 }

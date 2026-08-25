@@ -70,7 +70,7 @@ export function excluirPosto1(codigo) { //Função que exclui um posto pelo cód
 }
 
 function gravarPostos(postos) { //Função que grava/regrava o array de postos no ficheiro
-    writeFileSync(caminhoPostos, JSON.stringify(postos, null, 2), 'utf-8');
+    writeFileSync(caminhoPostos, JSON.stringify(postos, null, 2), 'utf-8'); //writeFileSync() cria o ficheiro se não existir, ou sobrescreve se já existir. JSON.stringify() converte o array de postos em string, com indentação de 2 espaços para melhor leitura
 }
 
 
