@@ -26,5 +26,12 @@
     "potenciaKw": 33,
     "tipoConector": "ccs",
     "estado": "ativo"
+  },
+  {
+    "codigo": "P005",
+    "concelho": "lisboa",
+    "potenciaKw": 33,
+    "tipoConector": "ccs",
+    "estado": "ativo"
   }
 ]

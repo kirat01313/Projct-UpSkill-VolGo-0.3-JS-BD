@@ -21,7 +21,8 @@ export function procurarPosto1(codigo) { //Função que procura um posto pelo c�
     return null;
 }
 
-export function inserirPosto1(posto) {
+export function inserirPosto1(posto) { 
+     if (procurarPosto1(posto.codigo) !== null) return null;   //se já existir um posto com o mesmo código, devolve null
     const postos = listarPostos(); //chama a função listarPostos() para pegar o array de postos já existentes
     postos.push(posto); //acrescenta o novo posto ao array de postos
     gravarPostos(postos); //chama a função gravarPostos() para gravar o array atualizado no ficheiro
@@ -39,7 +40,7 @@ export function alterarPosto1(codigo, dadosNovos) {
     }
     if (postoIndex === -1) {//se não encontrar, devolve null (essa parte parece duplicada com a parte do menuPostos.js)
         return null;
-    } else { //se encontrar, atualiza os campos do posto com os dados novos fornecidos
+    } else { //se encontrar, atualiza os campos do posto com os dados novos fornecidos mas não altera o código (que é a chave)
         postos[postoIndex].concelho = dadosNovos.concelho;
         postos[postoIndex].potenciaKw = dadosNovos.potenciaKw;
         postos[postoIndex].tipoConector = dadosNovos.tipoConector;
@@ -70,7 +71,8 @@ export function excluirPosto1(codigo) { //Função que exclui um posto pelo cód
 }
 
 function gravarPostos(postos) { //Função que grava/regrava o array de postos no ficheiro
-    writeFileSync(caminhoPostos, JSON.stringify(postos, null, 2), 'utf-8'); //writeFileSync() cria o ficheiro se não existir, ou sobrescreve se já existir. JSON.stringify() converte o array de postos em string, com indentação de 2 espaços para melhor leitura
+    writeFileSync(caminhoPostos, JSON.stringify(postos, null, 2), 'utf-8'); //writeFileSync() cria o ficheiro se não existir, ou sobrescreve se já existir. JSON.stringify() converte 
+                                                                            //o array de postos em string, com indentação de 2 espaços para melhor leitura
 }
 
 
