@@ -1,5 +1,6 @@
 import path from 'node:path'; //biblioteca do proprio node para definir caminhos de ficheiros
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'; //ler ficheiro, escrever ficheiro, verificar se existe ficheiro
+import { listarCarregamentos } from './carregamentoRepository.js'; //importa a função listarCarregamentos do repositório de carregamentos para verificar integridade referencial
 
 const caminhoPostos = path.join(import.meta.dirname, '../../data/postos.json'); //define o endereço do ficheiro e o nome do ficheiro em uma constante
 
@@ -21,8 +22,8 @@ export function procurarPosto1(codigo) { //Função que procura um posto pelo c�
     return null;
 }
 
-export function inserirPosto1(posto) { 
-     if (procurarPosto1(posto.codigo) !== null) return null;   //se já existir um posto com o mesmo código, devolve null
+export function inserirPosto1(posto) {
+    if (procurarPosto1(posto.codigo) !== null) return null;   //se já existir um posto com o mesmo código, devolve null
     const postos = listarPostos(); //chama a função listarPostos() para pegar o array de postos já existentes
     postos.push(posto); //acrescenta o novo posto ao array de postos
     gravarPostos(postos); //chama a função gravarPostos() para gravar o array atualizado no ficheiro
@@ -50,13 +51,11 @@ export function alterarPosto1(codigo, dadosNovos) {
     }
 }
 
-export function excluirPosto1(codigo) { //Função que exclui um posto pelo código, devolvendo true se excluiu, ou false se não encontrou o posto
-    // TODO (quando o Fred tiver o carregamentoRepository):
-    //   integridade referencial — não remover se houver carregamentos neste posto
-    //   const carregamentos = listarCarregamentos();
-    //   for (let i = 0; i < carregamentos.length; i++) {
-    //     if (carregamentos[i].posto === codigo) return false;
-    //   }
+export function excluirPosto1(codigo) {
+    const carregamentos = listarCarregamentos(); //
+    for (let i = 0; i < carregamentos.length; i++) { //
+        if (carregamentos[i].posto.toLowerCase() === codigo.toLowerCase()) return false;
+    }
 
     const postos = listarPostos(); //chama a função listarPostos() para pegar o array de postos já existentes
     const restantes = []; //cria um array vazio para guardar os postos que não serão excluídos
@@ -72,7 +71,7 @@ export function excluirPosto1(codigo) { //Função que exclui um posto pelo cód
 
 function gravarPostos(postos) { //Função que grava/regrava o array de postos no ficheiro
     writeFileSync(caminhoPostos, JSON.stringify(postos, null, 2), 'utf-8'); //writeFileSync() cria o ficheiro se não existir, ou sobrescreve se já existir. JSON.stringify() converte 
-                                                                            //o array de postos em string, com indentação de 2 espaços para melhor leitura
+    //o array de postos em string, com indentação de 2 espaços para melhor leitura
 }
 
 

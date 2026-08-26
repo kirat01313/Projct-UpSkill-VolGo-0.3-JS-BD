@@ -20,6 +20,7 @@ import {
   relatorioCarregamentosPorPosto,
   relatorioCarregamentosPorCliente,
 } from '../3-services/relatorioService.js';                                  // as duas funções do relatório 4.1, já prontas e testadas
+import { relatorioClientes } from '../3-services/relatorioService.js';       // a função do relatório 4.2, ainda por fazer
 
 export function menuRelatorios() { // função que mostra o submenu de Relatórios e trata cada opção escolhida
   let opcao = ''; // começa vazia, só pra garantir que o while entra pelo menos uma vez
@@ -28,7 +29,7 @@ export function menuRelatorios() { // função que mostra o submenu de Relatóri
     console.log('\n--- Relatórios ---');
     console.log('1. Carregamentos e custos por posto');
     console.log('2. Carregamentos e custos por cliente');
-    console.log('3. Clientes com carregamentos (ainda não implementado — 4.2)');
+    console.log('3. Clientes com carregamentos');
     console.log('0. Voltar');
     opcao = readlineSync.question('Opção: '); // lê a opção escolhida (sempre como texto)
 
@@ -41,7 +42,11 @@ export function menuRelatorios() { // função que mostra o submenu de Relatóri
       console.log(relatorio.linhas);
       console.log(`Total energia: ${relatorio.totalEnergia} kWh | Total custo: ${relatorio.totalCusto} EUR`);
     } else if (opcao === '3') {
-      console.log('TODO: relatório de clientes (4.2) ainda não implementado.'); // aguardando o Tarik terminar o clienteRepository
+      const linhas = relatorioClientes();
+      for (let i = 0; i < linhas.length; i++) {
+        const c = linhas[i];
+        console.log(`${c.nome} | ${c.idade} anos | ${c.contacto} | ${c.matricula} | ${c.quantidade} carregamentos | ${c.energiaTotal} kWh`);
+      }
     } else if (opcao !== '0') { // qualquer opção que não seja 1-3 nem 0
       console.log('Opção inválida.');
     }

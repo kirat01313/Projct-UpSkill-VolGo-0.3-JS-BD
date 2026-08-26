@@ -7,7 +7,7 @@ const prompt = readlineSync.question;
 
 //----Funções auxiliares do menu----
 function inserirNovoPosto() {
-  const codigoPosto = lerTextoObrigatorio("Digite o código do novo Posto: ");
+  const codigoPosto = lerTextoObrigatorio("Digite o código do novo Posto: ").toUpperCase();
   const concelhoPosto = lerOpcaoValida("Digite o concelho do novo Posto: ", CONCELHOS_VALIDOS);
   const potenciaPosto = lerNumeroPositivo("Digite a potência do novo Posto: ");
   const conectorPosto = lerOpcaoValida("Digite o tipo de conector do novo Posto: ", CONECTORES_VALIDOS);

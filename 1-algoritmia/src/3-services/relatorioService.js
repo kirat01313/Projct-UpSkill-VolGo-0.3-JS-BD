@@ -70,6 +70,8 @@
 */
 
 import { listarCarregamentos } from '../2-repositories/carregamentoRepository.js';
+import { listarClientes } from '../2-repositories/clienteRepository.js';
+import { calcularIdade } from '../utils/validacao.js';
 
 export function relatorioCarregamentosPorPosto() {
   const carregamentos = listarCarregamentos();
@@ -123,4 +125,36 @@ export function relatorioCarregamentosPorCliente() {
   }
 
   return { linhas, totalEnergia, totalCusto };                                                // devolve os dados para o menu imprimir (linhas + somatório)
+}
+
+//---------- Parte Tarik -----------
+
+export function relatorioClientes() {
+  const clientes = listarClientes();
+  const carregamentos = listarCarregamentos();
+
+  const linhas = [];
+
+  for (let i = 0; i < clientes.length; i++) {        // ciclo de FORA: cada cliente
+    let quantidade = 0;
+    let energiaTotal = 0;
+
+    for (let j = 0; j < carregamentos.length; j++) { // ciclo de DENTRO: os carregamentos dele
+      if (carregamentos[j].cliente === clientes[i].nif) {
+        quantidade = quantidade + 1;
+        energiaTotal = energiaTotal + carregamentos[j].energiaKwh;
+      }
+    }
+
+    linhas.push({
+      nome: clientes[i].nome,
+      idade: calcularIdade(clientes[i].dataNascimento),
+      contacto: clientes[i].contactoTelefone,
+      matricula: clientes[i].matricula,
+      quantidade: quantidade,
+      energiaTotal: energiaTotal,
+    });
+  }
+
+  return linhas;      // devolve os dados; quem imprime é o menu
 }

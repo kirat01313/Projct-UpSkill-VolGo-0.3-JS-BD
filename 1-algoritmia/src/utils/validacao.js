@@ -103,6 +103,25 @@ function soDigitos(texto) { //função auxiliar que verifica se uma string cont�
     return true;
 }
 
+// -------------- Calcula a idade a partir de "AAAA-MM-DD" ----------
+export function calcularIdade(dataNascimento) {
+  const hoje = new Date();
+  const anoNasc = Number(dataNascimento.substring(0, 4));
+  const mesNasc = Number(dataNascimento.substring(5, 7));
+  const diaNasc = Number(dataNascimento.substring(8, 10));
+
+  let idade = hoje.getFullYear() - anoNasc;      // diferença bruta de anos
+
+  const mesHoje = hoje.getMonth() + 1;            // getMonth() dá 0-11, por isso +1
+  const diaHoje = hoje.getDate();
+
+  // se ainda não fez anos este ano, tira 1
+  if (mesHoje < mesNasc || (mesHoje === mesNasc && diaHoje < diaNasc)) {
+    idade = idade - 1;
+  }
+  return idade;
+}
+
 
 //Funções de validação do Fred )
 export function campoObrigatorio(valor) { //função que verifica se um valor é obrigatório (não pode ser undefined, null ou string vazia)

@@ -135,10 +135,10 @@ export function inserirCarregamento(novoCarregamento) {
     cliente: novoCarregamento.cliente,
     tarifario: novoCarregamento.tarifario,
     dataHoraInicio: novoCarregamento.dataHoraInicio,
-    dataHoraFim: novoCarregamento.dataHoraFim ?? null,
-    energiaKwh: novoCarregamento.energiaKwh ?? 0,
-    custo: novoCarregamento.custo ?? 0,
-    estado: novoCarregamento.estado ?? 'em curso',
+    dataHoraFim: novoCarregamento.dataHoraFim ?? null, //?? operador de coalescência nula: se dataHoraFim for undefined ou null, atribui null
+    energiaKwh: novoCarregamento.energiaKwh ?? 0, // se energiaKwh não for fornecido, atribui 0
+    custo: novoCarregamento.custo ?? 0, // se custo não for fornecido, atribui 0
+    estado: novoCarregamento.estado ?? 'em curso', // se estado não for fornecido, atribui 'em curso'
   };
 
   carregamentos.push(carregamentoCompleto);
@@ -148,9 +148,9 @@ export function inserirCarregamento(novoCarregamento) {
 
 export function atualizarCarregamento(id, dados) {
   const carregamentos = listarCarregamentos();
-  const index = carregamentos.findIndex(c => c.id === id);
+  const index = carregamentos.findIndex(c => c.id === id); //c => c.id === id é uma função de callback que retorna true se o id do carregamento atual for igual ao id fornecido, e false caso contrário. O findIndex() retorna o índice do primeiro elemento que satisfaz a condição, ou -1 se nenhum elemento satisfizer.
   if (index === -1) return null; // não encontrado
-  carregamentos[index] = { ...carregamentos[index], ...dados };
+  carregamentos[index] = { ...carregamentos[index], ...dados }; 
   gravarCarregamentos(carregamentos);
   return carregamentos[index];
 }
@@ -158,7 +158,7 @@ export function atualizarCarregamento(id, dados) {
 export function removerCarregamento(id) {
   // Sem integridade referencial aqui — nenhuma entidade aponta para um carregamento
   const carregamentos = listarCarregamentos();
-  const index = carregamentos.findIndex(c => c.id === id);
+  const index = carregamentos.findIndex(c => c.id === id); //c => c.id === id é uma função de callback que retorna true se o id do carregamento atual for igual ao id fornecido, e false caso contrário. O findIndex() retorna o índice do primeiro elemento que satisfaz a condição, ou -1 se nenhum elemento satisfizer.
   if (index === -1) return false;
   carregamentos.splice(index, 1);
   gravarCarregamentos(carregamentos);
