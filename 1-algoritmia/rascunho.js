@@ -19,4 +19,11 @@ ponto diferencial estimativa de tempo com base na bateria do carro % da bateria 
 O menor kwh define a velocidade de carregamento, e o tempo de carregamento
  é calculado com base na potencia do posto e no kwh do carro
 
+ 
+
+ correções:
+
+ Cliente com carregamento sendo excluido
+
+Impedir um carregamento em curso de ser removido 
 */

@@ -88,14 +88,17 @@ export function inserirCarregamento(novoCarregamento) {
 
   // Integridade referencial "na entrada": posto e tarifário precisam existir de facto
   const postos = listarPostos();                                                          // busca todos os postos já cadastrados
-  let postoExiste = false;                                                                 // bandeira que começa falsa e vira true se achar o posto
+  let postoEncontrado = null;                                                              // guarda o posto encontrado (não só um booleano, porque também precisamos do estado dele)
   for (let i = 0; i < postos.length; i++) {                                                // percorre todos os postos existentes
     if (postos[i].codigo.toLowerCase() === novoCarregamento.posto.toLowerCase()) {         // compara o código do posto com o que veio no carregamento, ignorando maiúsculas/minúsculas
-      postoExiste = true;                                                                  // achou, levanta a bandeira
+      postoEncontrado = postos[i];                                                         // achou, guarda o posto inteiro
     }
   }
-  if (!postoExiste) {
+  if (postoEncontrado === null) {
     return null; // posto não existe, recusa
+  }
+  if (postoEncontrado.estado !== 'ativo') {
+    return null; // posto existe mas está em manutenção (ou outro estado que não seja ativo), recusa
   }
 
   const tarifarios = listarTarifarios();                                                   // busca todos os tarifários já cadastrados
