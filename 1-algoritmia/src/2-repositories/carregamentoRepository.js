@@ -150,6 +150,33 @@ export function atualizarCarregamento(id, dados) {
   const carregamentos = listarCarregamentos();
   const index = carregamentos.findIndex(c => c.id === id);
   if (index === -1) return null; // não encontrado
+
+  if (dados.energiaKwh !== undefined) {                                                  // só faz sentido validar a energia quando ela está a ser definida agora
+    const carregamentoAtual = carregamentos[index];
+    const dataFim = dados.dataHoraFim ?? carregamentoAtual.dataHoraFim;                   // usa a nova data de fim, se vier, senão a que já estava guardada
+
+    if (!campoObrigatorio(dataFim) || !dataHoraValida(dataFim)) {
+      return null;                                                                        // sem data/hora de fim válida não dá pra calcular a duração, recusa
+    }
+
+    const duracaoEmHoras = (new Date(dataFim) - new Date(carregamentoAtual.dataHoraInicio)) / (1000 * 60 * 60); // diferença em milissegundos, convertida para horas
+
+    const postos = listarPostos();                                                        // busca todos os postos já cadastrados
+    let potenciaPosto = null;                                                              // bandeira: fica null se não encontrar o posto deste carregamento
+    for (let i = 0; i < postos.length; i++) {
+      if (postos[i].codigo.toLowerCase() === carregamentoAtual.posto.toLowerCase()) {
+        potenciaPosto = postos[i].potenciaKw;
+      }
+    }
+
+    if (potenciaPosto !== null) {                                                          // se o posto não existir mais, não há teto pra comparar — deixa passar
+      const energiaMaximaPossivel = potenciaPosto * duracaoEmHoras;                        // teto físico: potência do posto (kW) × horas = energia máxima (kWh)
+      if (dados.energiaKwh > energiaMaximaPossivel) {
+        return null;                                                                       // energia informada é fisicamente impossível para este posto e duração, recusa
+      }
+    }
+  }
+
   carregamentos[index] = { ...carregamentos[index], ...dados };
   gravarCarregamentos(carregamentos);
   return carregamentos[index];

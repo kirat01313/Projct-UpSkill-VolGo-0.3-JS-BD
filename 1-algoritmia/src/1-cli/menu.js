@@ -5,10 +5,43 @@ import { menuCarregamentos } from './cli-fred/menuCarregamentos.js';
 import { menuPostos } from './cli-tarik/menuPostos.js';
 import { menuClientes } from './cli-tarik/menuClientes.js';
 import { menuRelatorios } from './menuRelatorios.js';
+import { dashboard } from '../3-services/dashboardService.js';                       // função que calcula os 3 indicadores do dashboard
 
 export function iniciarMenu() {
   console.log('Bem-vindo ao VoltGo — sempre a carregar!\n');
+  imprimirDashboard();                                                               // mostra o resumo uma única vez, antes do menu aparecer
   menuPrincipal();
+}
+
+function imprimirDashboard() {                                                       // só imprime — quem calcula é o dashboardService.js
+  const dados = dashboard();                                                         // pede ao service os 3 indicadores já calculados
+
+  console.log('=== Dashboard ===');
+  console.log(`Carregamentos em curso: ${dados.emCurso}`);                           // indicador 1
+  console.log(`Carregamentos terminados: ${dados.terminados}`);
+
+  console.log('\nPor posto (só carregamentos terminados):');                         // indicador 2
+  let temPosto = false;                                                              // bandeira: vira true se entrar pelo menos uma vez no for...in
+  for (const posto in dados.porPosto) {                                              // percorre as chaves (códigos de posto) do objeto porPosto
+    temPosto = true;                                                                 // achou pelo menos um posto, levanta a bandeira
+    const info = dados.porPosto[posto];                                              // pega o objeto { quantidade, energia, mediaEnergia } do posto atual
+    console.log(`  ${posto} -> ${info.quantidade} carregamento(s), média de ${info.mediaEnergia.toFixed(2)} kWh`); // imprime a linha do posto, arredondando a média para 2 casas decimais
+  }
+  if (!temPosto) {
+    console.log('  Nenhum carregamento terminado ainda.');
+  }
+
+  console.log('\nPor tarifário (só carregamentos faturados):');                      // indicador 3
+  let temTarifario = false;                                                          // mesma lógica de bandeira, agora para os tarifários
+  for (const tarifario in dados.porTarifario) {                                      // percorre as chaves (nomes de tarifário) do objeto porTarifario
+    temTarifario = true;
+    const info = dados.porTarifario[tarifario];
+    console.log(`  ${tarifario} -> ${info.quantidade} carregamento(s), média de ${info.mediaReceita.toFixed(2)} EUR`);
+  }
+  if (!temTarifario) {
+    console.log('  Nenhum carregamento faturado ainda.');
+  }
+  console.log('');
 }
 
 function menuPrincipal() {
