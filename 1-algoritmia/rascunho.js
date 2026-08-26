@@ -1,71 +1,22 @@
 /*
-  ============================================================
-  RASCUNHO — COMECAR POR AQUI
-  ============================================================
 
-  A ideia deste ficheiro: escrever TUDO aqui dentro primeiro,
-  sem imports, sem pastas, sem se preocupar com organizacao.
 
-  So para perceber a logica e ver alguma coisa a funcionar.
 
-  Depois, quando estiver a andar, corta-se e cola-se cada
-  pedaco para o ficheiro certo em src/.
+ponto1: ao inserir codigo de posto ja indicar se ja existe ou nao, e se nao existir, nao permitir inserir o carregamento
+ponto2: ao inserir nome de tarifario ja indicar se ja existe ou nao, e se nao existir, nao permitir inserir o carregamento
 
-  ------------------------------------------------------------
-  ORDEM SUGERIDA DENTRO DESTE FICHEIRO:
-  ------------------------------------------------------------
+ponto3: ao inserir carregamento fazer ja o calculo dos KWH e custo, pois esta sendo inserido manualmente,
+ e nao esta sendo feito o calculo automatico,
+ e o custo deve ser calculado com base no tarifario escolhido,
+ e o KWH deve ser calculado com base na potencia do posto e no tempo de carregamento
 
-  1) DADOS DE EXEMPLO
-     Um array com 2-3 postos escritos a mao.
-     (ainda sem ficheiros .json — isso vem depois)
 
-  2) FUNCOES DE GESTAO DOS POSTOS
-     listarPostos()    -> devolve o array
-     inserirPosto()    -> acrescenta ao array
-     atualizarPosto()  -> encontra e altera
-     removerPosto()    -> tira do array
+ponto diferencial estimativa de tempo com base na bateria do carro % da bateria atual para estimativa de 100%
 
-     NOTA: estas funcoes NAO fazem console.log.
-           Elas devolvem valores; quem mostra e o menu.
+ outro diferencial seria user a energia kwh com um teto maximo tento por abse a potencia do posto e o 
+ tempo de carregamento, e se passar do teto maximo, nao permitir inserir o carregamento
 
-  3) MENU
-     Um ciclo que mostra as opcoes, le a escolha,
-     e chama a funcao certa.
+O menor kwh define a velocidade de carregamento, e o tempo de carregamento
+ é calculado com base na potencia do posto e no kwh do carro
 
-  4) TESTAR
-     Correr, inserir um posto, listar, ver se aparece.
-
-  ------------------------------------------------------------
-  DEPOIS DE FUNCIONAR — para onde vai cada pedaco:
-  ------------------------------------------------------------
-
-     os dados de exemplo  ->  data/postos.json
-     as funcoes de gestao ->  src/2-repositories/postoRepository.js
-     o menu               ->  src/1-cli/cli-tarik/menuPostos.js
-     o arranque           ->  index.js
-
-  ============================================================
 */
-
-
-
-//tarifarios:
-
-let tarifarios = [
-  { nome: 'Normal', precoPorKwh: 0.30, taxaAtivacao: 0 },
-  { nome: 'Verde', precoPorKwh: 0.25, taxaAtivacao: 0.50 },
-];
-
-
-function listarTarifarios() {
-  return tarifarios;
-}
-
-function inserirTarifario(novoTarifario) {
-   if (tarifarios.some(t => t.nome === novoTarifario.nome)) {
-    return null; // Tarifário já existe
-   } else {
-    tarifarios.push(novoTarifario);
-    return novoTarifario;
-   }
-}

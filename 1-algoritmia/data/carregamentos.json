@@ -9,5 +9,27 @@
     "energiaKwh": 12,
     "custo": 3.6,
     "estado": "terminado"
+  },
+  {
+    "id": 2,
+    "posto": "p001",
+    "cliente": "299106918",
+    "tarifario": "normal",
+    "dataHoraInicio": "2026-05-06 10:00",
+    "dataHoraFim": "2026-05-07 10:00",
+    "energiaKwh": 300,
+    "custo": 90,
+    "estado": "faturado"
+  },
+  {
+    "id": 3,
+    "posto": "p001",
+    "cliente": "299106918",
+    "tarifario": "normal",
+    "dataHoraInicio": "2026-10-10 10:00",
+    "dataHoraFim": null,
+    "energiaKwh": 0,
+    "custo": 0,
+    "estado": "em curso"
   }
 ]

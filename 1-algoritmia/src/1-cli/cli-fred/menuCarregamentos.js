@@ -53,6 +53,7 @@ import {
   atualizarCarregamento,
   removerCarregamento,
 } from '../../2-repositories/carregamentoRepository.js';                   // as 4 funções de CRUD do repositório de carregamentos
+import { listarTarifarios } from '../../2-repositories/tarifarioRepository.js'; // usado para calcular o custo a partir do preço do tarifário
 
 const ESTADOS_VALIDOS = ['em curso', 'terminado', 'faturado', 'anulado']; // lista fixa usada pelo lerOpcaoValida, pra não aceitar um estado escrito errado
 
@@ -83,20 +84,43 @@ export function menuCarregamentos() { // função que mostra o submenu de Carreg
       console.log(listarCarregamentos()); // só busca e imprime, sem lógica nenhuma aqui
     } else if (opcao === '3') {
       const id = Number(readlineSync.question('ID do carregamento: '));                                          // lê o id e converte pra número (o input vem sempre como texto)
-      const estado = lerOpcaoValida('Novo estado (em curso/terminado/faturado/anulado): ', ESTADOS_VALIDOS);     // lê o novo estado, repetindo até ser um dos 4 válidos
 
-      const dadosNovos = { estado }; // objeto que vai crescendo conforme o estado escolhido
-      if (estado === 'terminado' || estado === 'faturado') { // só pede os campos de fecho se o carregamento está mesmo terminando
-        dadosNovos.dataHoraFim = readlineSync.question('Data/hora de fim (AAAA-MM-DD HH:mm): ');   // lê a data/hora de fim
-        dadosNovos.energiaKwh = Number(readlineSync.question('Energia fornecida (kWh): '));        // lê a energia consumida
-        dadosNovos.custo = Number(readlineSync.question('Custo (EUR): '));                          // lê o custo final
+      // busca o carregamento primeiro — precisamos saber o TARIFÁRIO dele para calcular o custo mais à frente
+      const carregamentos = listarCarregamentos();
+      let carregamentoAtual = null;                                                                              // bandeira: fica null até encontrar o carregamento com esse id
+      for (let i = 0; i < carregamentos.length; i++) {
+        if (carregamentos[i].id === id) {
+          carregamentoAtual = carregamentos[i];
+        }
       }
 
-      const resultado = atualizarCarregamento(id, dadosNovos); // envia só os campos que mudaram
-      if (resultado === null) { // null aqui significa "id não encontrado"
+      if (carregamentoAtual === null) {
         console.log('Carregamento não encontrado.');
       } else {
-        console.log('Carregamento atualizado:', resultado);
+        const estado = lerOpcaoValida('Novo estado (em curso/terminado/faturado/anulado): ', ESTADOS_VALIDOS);     // lê o novo estado, repetindo até ser um dos 4 válidos
+
+        const dadosNovos = { estado }; // objeto que vai crescendo conforme o estado escolhido
+        if (estado === 'terminado' || estado === 'faturado') { // só pede os campos de fecho se o carregamento está mesmo terminando
+          dadosNovos.dataHoraFim = readlineSync.question('Data/hora de fim (AAAA-MM-DD HH:mm): ');   // lê a data/hora de fim
+          dadosNovos.energiaKwh = Number(readlineSync.question('Energia fornecida (kWh): '));        // lê a energia consumida, medida pelo posto
+
+          // custo NÃO é perguntado — é calculado a partir da energia medida e do preço do tarifário deste carregamento
+          const tarifarios = listarTarifarios();                                                     // busca todos os tarifários já cadastrados
+          let tarifarioUsado = null;                                                                  // bandeira: fica null até encontrar o tarifário do carregamento
+          for (let i = 0; i < tarifarios.length; i++) {
+            if (tarifarios[i].nome.toLowerCase() === carregamentoAtual.tarifario.toLowerCase()) {
+              tarifarioUsado = tarifarios[i];
+            }
+          }
+          dadosNovos.custo = dadosNovos.energiaKwh * tarifarioUsado.precoPorKwh + tarifarioUsado.taxaAtivacao; // energia × preço por kWh, mais a taxa de ativação
+        }
+
+        const resultado = atualizarCarregamento(id, dadosNovos); // envia só os campos que mudaram
+        if (resultado === null) { // aqui já sabemos que o id existe, então null só pode significar: energia impossível para este posto/duração
+          console.log('Não foi possível atualizar — a energia informada não é possível para este posto, na duração indicada.');
+        } else {
+          console.log('Carregamento atualizado:', resultado);
+        }
       }
     } else if (opcao === '4') {
       const id = Number(readlineSync.question('ID do carregamento a remover: ')); // lê o id a remover
