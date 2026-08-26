@@ -1,12 +1,5 @@
 [
-  {
-    "nome": "Normal",
-    "precoPorKwh": 0.3,
-    "taxaAtivacao": 0
-  },
-  {
-    "nome": "Verde",
-    "precoPorKwh": 0.25,
-    "taxaAtivacao": 0.5
-  }
+  { "nome": "Normal", "precoPorKwh": 0.3, "taxaAtivacao": 0 },
+  { "nome": "Verde", "precoPorKwh": 0.25, "taxaAtivacao": 0.5 },
+  { "nome": "Rapido", "precoPorKwh": 0.45, "taxaAtivacao": 1 }
 ]

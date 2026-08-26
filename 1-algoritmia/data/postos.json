@@ -1,37 +1,7 @@
 [
-  {
-    "codigo": "P001",
-    "concelho": "braga",
-    "potenciaKw": 22,
-    "tipoConector": "type2",
-    "estado": "ativo"
-  },
-  {
-    "codigo": "P002",
-    "concelho": "porto",
-    "potenciaKw": 50,
-    "tipoConector": "ccs",
-    "estado": "ativo"
-  },
-  {
-    "codigo": "P003",
-    "concelho": "braga",
-    "potenciaKw": 150,
-    "tipoConector": "ccs",
-    "estado": "manutencao"
-  },
-  {
-    "codigo": "P004",
-    "concelho": "braga",
-    "potenciaKw": 33,
-    "tipoConector": "ccs",
-    "estado": "ativo"
-  },
-  {
-    "codigo": "P005",
-    "concelho": "lisboa",
-    "potenciaKw": 33,
-    "tipoConector": "ccs",
-    "estado": "ativo"
-  }
+  { "codigo": "P001", "concelho": "braga", "potenciaKw": 22, "tipoConector": "type2", "estado": "ativo" },
+  { "codigo": "P002", "concelho": "porto", "potenciaKw": 50, "tipoConector": "ccs", "estado": "ativo" },
+  { "codigo": "P003", "concelho": "braga", "potenciaKw": 150, "tipoConector": "ccs", "estado": "manutencao" },
+  { "codigo": "P004", "concelho": "guimarães", "potenciaKw": 33, "tipoConector": "ccs", "estado": "ativo" },
+  { "codigo": "P005", "concelho": "lisboa", "potenciaKw": 11, "tipoConector": "type2", "estado": "ativo" }
 ]
