@@ -67,7 +67,7 @@ export function menuCarregamentos() { // função que mostra o submenu de Carreg
     if (opcao === '1') {
       // A validação de campos vazios, data inválida, e existência de posto/tarifário
       // já acontece dentro do inserirCarregamento (repositório) — aqui só se lê o input.
-      // Cliente ainda não é confirmado 
+      
       const posto = readlineSync.question('Código do posto: ');                                  // lê o código do posto do utilizador
       const cliente = readlineSync.question('NIF do cliente: ');                                  // lê o NIF do cliente do utilizador
       const tarifario = readlineSync.question('Nome do tarifário: ');                              // lê o nome do tarifário do utilizador

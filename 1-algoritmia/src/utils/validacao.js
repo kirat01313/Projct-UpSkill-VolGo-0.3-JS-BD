@@ -85,6 +85,14 @@ function dataValida1(data) { //função auxiliar que verifica se uma string é u
     if (mes < 1 || mes > 12) return false;
     if (dia < 1 || dia > 31) return false;
     if (ano < 1900 || ano > 2026) return false;
+
+    //até aqui só confirmamos que cada pedaço está na escala certa, mas isso deixa
+    //passar dias que não existem (ex.: 30 de fevereiro). O JavaScript "arruma"
+    //essas datas em vez de as rejeitar (30 de fevereiro vira 2 de março), então
+    //aproveitamos isso: criamos a data e vemos se o mês continua o que pedimos.
+    const dataTeste = new Date(ano, mes - 1, dia); //mes - 1 porque no objeto Date janeiro é 0
+    if (dataTeste.getMonth() !== mes - 1) return false; //se o mês mudou, o dia não existia nesse mês (também apanha anos bissextos)
+
     return true;
 }
 
@@ -103,4 +111,21 @@ export function campoObrigatorio(valor) { //função que verifica se um valor é
 
 export function valorPositivo(valor) { //função que verifica se um valor é um número positivo (maior que zero)
     return typeof valor === 'number' && valor > 0;
+}
+
+export function dataHoraValida(valor) { //função que verifica se uma string tem data E hora completas, no formato AAAA-MM-DD HH:mm
+  const texto = String(valor).trim();
+  if (texto.length !== 16) return false; //"AAAA-MM-DD HH:mm" tem sempre 16 caracteres
+  if (texto[10] !== " " || texto[13] !== ":") return false; //espaço a separar a data da hora, dois pontos a separar a hora dos minutos
+
+  const parteData = texto.substring(0, 10); //"AAAA-MM-DD"
+  if (!dataValida1(parteData)) return false; //reaproveita a mesma validação de data usada em lerData (ano/mes/dia, incluindo dias por mês)
+
+  const hora = Number(texto.substring(11, 13));
+  const minuto = Number(texto.substring(14, 16));
+  if (Number.isNaN(hora) || Number.isNaN(minuto)) return false; //algum dos pedaços não era número
+  if (hora < 0 || hora > 23) return false; //hora válida vai de 00 a 23
+  if (minuto < 0 || minuto > 59) return false; //minuto válido vai de 00 a 59
+
+  return true;
 }

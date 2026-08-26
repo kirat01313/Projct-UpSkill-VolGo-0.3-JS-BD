@@ -4,6 +4,7 @@ import { menuTarifarios } from './cli-fred/menuTarifarios.js';
 import { menuCarregamentos } from './cli-fred/menuCarregamentos.js';
 import { menuPostos } from './cli-tarik/menuPostos.js';
 import { menuClientes } from './cli-tarik/menuClientes.js';
+import { menuRelatorios } from './menuRelatorios.js';
 
 export function iniciarMenu() {
   console.log('Bem-vindo ao VoltGo — sempre a carregar!\n');
@@ -32,7 +33,7 @@ function menuPrincipal() {
     } else if (opcao === '4') {
       menuCarregamentos();
     } else if (opcao === '5') {
-      console.log('Ainda não implementado.');
+      menuRelatorios();
     } else if (opcao === '0') {
       console.log('Até já!');
     } else {

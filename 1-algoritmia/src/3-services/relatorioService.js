@@ -76,13 +76,13 @@ export function relatorioCarregamentosPorPosto() {
 
   // 1. Filtra só os carregamentos terminados ou faturados,
   //    guardando só os campos que interessam ao relatório
-  const linhas = [];
+  const linhas = [];  // array para guardar só os carregamentos que interessam ao relatório
   for (let i = 0; i < carregamentos.length; i++) {
-    if (carregamentos[i].estado === 'terminado' || carregamentos[i].estado === 'faturado') {
+    if (carregamentos[i].estado === 'terminado' || carregamentos[i].estado === 'faturado') { // só entra quem está terminado ou faturado
       linhas.push({ //faz um push no array linhas com os campos que interessam
-        posto: carregamentos[i].posto,
-        energiaKwh: carregamentos[i].energiaKwh,
-        custo: carregamentos[i].custo,
+        posto: carregamentos[i].posto,           // identifica de qual posto é o carregamento
+        energiaKwh: carregamentos[i].energiaKwh, // energia consumida nesse carregamento
+        custo: carregamentos[i].custo,           // custo desse carregamento
       });
     }
   }
@@ -101,23 +101,26 @@ export function relatorioCarregamentosPorPosto() {
 export function relatorioCarregamentosPorCliente() {
   const carregamentos = listarCarregamentos();                                                // lista todos os carregamentos do repositório
 
+  // 1. Filtra só os carregamentos terminados ou faturados,
+  //    guardando só os campos que interessam ao relatório (agora por cliente, não por posto)
   const linhas = [];                                                                          // array para guardar só os carregamentos que interessam ao relatório
   for (let i = 0; i < carregamentos.length; i++) {                                            // percorre todos os carregamentos
-    if (carregamentos[i].estado === 'terminado' || carregamentos[i].estado === 'faturado') {
+    if (carregamentos[i].estado === 'terminado' || carregamentos[i].estado === 'faturado') {  // só entra quem está terminado ou faturado
       linhas.push({                                                                           // guarda só os campos que interessam ao relatório
-        cliente: carregamentos[i].cliente,
-        energiaKwh: carregamentos[i].energiaKwh,
-        custo: carregamentos[i].custo,
+        cliente: carregamentos[i].cliente,                                                    // identifica de quem é o carregamento
+        energiaKwh: carregamentos[i].energiaKwh,                                               // energia consumida nesse carregamento
+        custo: carregamentos[i].custo,                                                         // custo desse carregamento
       });
     }
   }
 
-  let totalEnergia = 0;
-  let totalCusto = 0;
-  for (let i = 0; i < linhas.length; i++) {
-    totalEnergia += linhas[i].energiaKwh;
-    totalCusto += linhas[i].custo;
+  // 2. Soma a energia e o custo de tudo o que ficou na lista
+  let totalEnergia = 0;                                                                       // acumulador da energia, começa em 0
+  let totalCusto = 0;                                                                         // acumulador do custo, começa em 0
+  for (let i = 0; i < linhas.length; i++) {                                                   // percorre a lista já filtrada, não o array original
+    totalEnergia += linhas[i].energiaKwh;                                                     // soma a energia deste carregamento ao total
+    totalCusto += linhas[i].custo;                                                            // soma o custo deste carregamento ao total
   }
 
-  return { linhas, totalEnergia, totalCusto };
+  return { linhas, totalEnergia, totalCusto };                                                // devolve os dados para o menu imprimir (linhas + somatório)
 }

@@ -51,11 +51,10 @@
 
 import path from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { campoObrigatorio, dataValida } from '../utils/validacao.js';
+import { campoObrigatorio, dataHoraValida } from '../utils/validacao.js';
 import { listarPostos } from './postoRepository.js';
 import { listarTarifarios } from './tarifarioRepository.js';
-
-// TODO: confirmar que o cliente existe de facto (falta o clienteRepository do Tarik)
+import { listarClientes } from './clienteRepository.js';
 
 const caminhoCarregamentos = path.join(import.meta.dirname, '../../data/carregamentos.json');   //define o caminho do arquivo JSON que armazenará os dados dos carregamentos
 
@@ -83,8 +82,8 @@ export function inserirCarregamento(novoCarregamento) {
   if (!campoObrigatorio(novoCarregamento.dataHoraInicio)) {
     return null; // data de início vazia, recusa
   }
-  if (!dataValida(novoCarregamento.dataHoraInicio)) {                                     // verifica se o texto da data/hora de início é uma data reconhecível
-    return null; // data de início inválida, recusa
+  if (!dataHoraValida(novoCarregamento.dataHoraInicio)) {                                 // verifica se o texto tem data E hora completas no formato AAAA-MM-DD HH:mm
+    return null; // data/hora de início inválida ou incompleta, recusa
   }
 
   // Integridade referencial "na entrada": posto e tarifário precisam existir de facto
@@ -110,7 +109,16 @@ export function inserirCarregamento(novoCarregamento) {
     return null; // tarifário não existe, recusa
   }
 
-  // TODO: confirmar também que o cliente existe 
+  const clientes = listarClientes();                                                      // busca todos os clientes já cadastrados
+  let clienteExiste = false;                                                               // mesma lógica de bandeira, agora para o cliente
+  for (let i = 0; i < clientes.length; i++) {                                              // percorre todos os clientes existentes
+    if (clientes[i].nif === novoCarregamento.cliente) {                                    // compara o NIF do cliente (não usa toLowerCase(), NIF é só número)
+      clienteExiste = true;                                                                // achou, levanta a bandeira
+    }
+  }
+  if (!clienteExiste) {
+    return null; // cliente não existe, recusa
+  }
 
   const carregamentos = listarCarregamentos();                                           // lista todos os carregamentos do repositório
 
