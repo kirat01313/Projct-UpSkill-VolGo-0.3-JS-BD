@@ -73,6 +73,13 @@ export function lerData(mensagem) { //função que lê uma data do usuário, rep
     return valor;
 }
 
+
+export function calcularHorasEntre(inicio, fim) { //função que calcula a diferença em horas entre duas datas no formato "AAAA-MM-DD HH:mm"
+    const milissegundos = textoParaDataHora(fim) - textoParaDataHora(inicio); //subtrair dois Date dá a diferença em milissegundos
+    return milissegundos / 1000 / 60 / 60; //milissegundos -> segundos -> minutos -> horas
+    //pode dar NEGATIVO se o fim vier antes do início. É de propósito: é assim que se apanham datas trocadas.
+}
+
 //------------- Auxiliares das funções de validação -------------
 
 function dataValida1(data) { //função auxiliar que verifica se uma string é uma data válida no formato AAAA-MM-DD
@@ -105,22 +112,34 @@ function soDigitos(texto) { //função auxiliar que verifica se uma string cont�
 
 // -------------- Calcula a idade a partir de "AAAA-MM-DD" ----------
 export function calcularIdade(dataNascimento) {
-  const hoje = new Date();
-  const anoNasc = Number(dataNascimento.substring(0, 4));
-  const mesNasc = Number(dataNascimento.substring(5, 7));
-  const diaNasc = Number(dataNascimento.substring(8, 10));
+    const hoje = new Date();
+    const anoNasc = Number(dataNascimento.substring(0, 4));
+    const mesNasc = Number(dataNascimento.substring(5, 7));
+    const diaNasc = Number(dataNascimento.substring(8, 10));
 
-  let idade = hoje.getFullYear() - anoNasc;      // diferença bruta de anos
+    let idade = hoje.getFullYear() - anoNasc;      // diferença bruta de anos
 
-  const mesHoje = hoje.getMonth() + 1;            // getMonth() dá 0-11, por isso +1
-  const diaHoje = hoje.getDate();
+    const mesHoje = hoje.getMonth() + 1;            // getMonth() dá 0-11, por isso +1
+    const diaHoje = hoje.getDate();
 
-  // se ainda não fez anos este ano, tira 1
-  if (mesHoje < mesNasc || (mesHoje === mesNasc && diaHoje < diaNasc)) {
-    idade = idade - 1;
-  }
-  return idade;
+    // se ainda não fez anos este ano, tira 1
+    if (mesHoje < mesNasc || (mesHoje === mesNasc && diaHoje < diaNasc)) {
+        idade = idade - 1;
+    }
+    return idade;
 }
+
+// -------------- Converte "AAAA-MM-DD HH:mm" num objeto Date ----------
+function textoParaDataHora(texto) {
+    const ano = Number(texto.substring(0, 4));
+    const mes = Number(texto.substring(5, 7));
+    const dia = Number(texto.substring(8, 10));
+    const hora = Number(texto.substring(11, 13));
+    const min = Number(texto.substring(14, 16));
+    return new Date(ano, mes - 1, dia, hora, min); //mes - 1 porque no objeto Date janeiro é 0
+}
+
+
 
 
 //Funções de validação do Fred )
@@ -133,18 +152,18 @@ export function valorPositivo(valor) { //função que verifica se um valor é um
 }
 
 export function dataHoraValida(valor) { //função que verifica se uma string tem data E hora completas, no formato AAAA-MM-DD HH:mm
-  const texto = String(valor).trim();
-  if (texto.length !== 16) return false; //"AAAA-MM-DD HH:mm" tem sempre 16 caracteres
-  if (texto[10] !== " " || texto[13] !== ":") return false; //espaço a separar a data da hora, dois pontos a separar a hora dos minutos
+    const texto = String(valor).trim();
+    if (texto.length !== 16) return false; //"AAAA-MM-DD HH:mm" tem sempre 16 caracteres
+    if (texto[10] !== " " || texto[13] !== ":") return false; //espaço a separar a data da hora, dois pontos a separar a hora dos minutos
 
-  const parteData = texto.substring(0, 10); //"AAAA-MM-DD"
-  if (!dataValida1(parteData)) return false; //reaproveita a mesma validação de data usada em lerData (ano/mes/dia, incluindo dias por mês)
+    const parteData = texto.substring(0, 10); //"AAAA-MM-DD"
+    if (!dataValida1(parteData)) return false; //reaproveita a mesma validação de data usada em lerData (ano/mes/dia, incluindo dias por mês)
 
-  const hora = Number(texto.substring(11, 13));
-  const minuto = Number(texto.substring(14, 16));
-  if (Number.isNaN(hora) || Number.isNaN(minuto)) return false; //algum dos pedaços não era número
-  if (hora < 0 || hora > 23) return false; //hora válida vai de 00 a 23
-  if (minuto < 0 || minuto > 59) return false; //minuto válido vai de 00 a 59
+    const hora = Number(texto.substring(11, 13));
+    const minuto = Number(texto.substring(14, 16));
+    if (Number.isNaN(hora) || Number.isNaN(minuto)) return false; //algum dos pedaços não era número
+    if (hora < 0 || hora > 23) return false; //hora válida vai de 00 a 23
+    if (minuto < 0 || minuto > 59) return false; //minuto válido vai de 00 a 59
 
-  return true;
+    return true;
 }

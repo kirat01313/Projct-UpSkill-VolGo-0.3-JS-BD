@@ -1,20 +1,3 @@
-/*
-  SUBMENU DE RELATÓRIOS  (Fred + Tarik)
-  ======================================
-
-  Diferente dos outros submenus, este fica direto em 1-cli/ (não em
-  cli-fred/ nem cli-tarik/) porque os dois vão mexer nele: o 4.1 (Fred)
-  já está aqui, e o 4.2 (Tarik) entra depois como uma opção nova.
-
-  ------------------------------------------------------------
-  OPÇÕES
-  ------------------------------------------------------------
-     1. Carregamentos e custos por posto     (4.1 — Fred)
-     2. Carregamentos e custos por cliente   (4.1 — Fred)
-     3. Clientes com carregamentos           (4.2 — Tarik, ainda por fazer)
-     0. Voltar
-*/
-
 import readlineSync from 'readline-sync';                                    // biblioteca de leitura síncrona do terminal
 import {
   relatorioCarregamentosPorPosto,
