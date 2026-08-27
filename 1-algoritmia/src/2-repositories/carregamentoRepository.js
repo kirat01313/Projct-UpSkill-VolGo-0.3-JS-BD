@@ -51,13 +51,13 @@ export function inserirCarregamento(novoCarregamento) {
   }
 
   const tarifarios = listarTarifarios();                                                   // busca todos os tarifários já cadastrados
-  let tarifarioExiste = false;                                                             // mesma lógica de bandeira, agora para o tarifário
+  let tarifarioEncontrado = null;                                                          // guarda o tarifário encontrado (não só um booleano, porque precisamos do nome tal como está gravado)
   for (let i = 0; i < tarifarios.length; i++) {                                            // percorre todos os tarifários existentes
     if (tarifarios[i].nome.toLowerCase() === novoCarregamento.tarifario.toLowerCase()) {   // compara o nome do tarifário, ignorando maiúsculas/minúsculas
-      tarifarioExiste = true;                                                              // achou, levanta a bandeira
+      tarifarioEncontrado = tarifarios[i];                                                 // achou, guarda o tarifário inteiro
     }
   }
-  if (!tarifarioExiste) {
+  if (tarifarioEncontrado === null) {
     return null; // tarifário não existe, recusa
   }
 
@@ -83,9 +83,12 @@ export function inserirCarregamento(novoCarregamento) {
 
   const carregamentoCompleto = {                                                         // cria um objeto completo do carregamento com todos os campos necessários, preenchendo os valores padrão para dataHoraFim, energiaKwh, custo e estado se não forem fornecidos
     id: novoId,
-    posto: novoCarregamento.posto,
-    cliente: novoCarregamento.cliente,
-    tarifario: novoCarregamento.tarifario,
+    // Guarda o código/nome TAL COMO ESTÁ NO REGISTO original, não como o utilizador escreveu.
+    // Se escrever "p001" ou "normal", fica gravado "P001" e "Normal".
+    // Sem isto, o dashboard e os relatórios agrupam "normal" e "Normal" como se fossem dois.
+    posto: postoEncontrado.codigo,
+    cliente: novoCarregamento.cliente,      // o NIF não tem maiúsculas/minúsculas, fica como veio
+    tarifario: tarifarioEncontrado.nome,
     dataHoraInicio: novoCarregamento.dataHoraInicio,
     dataHoraFim: novoCarregamento.dataHoraFim ?? null, //?? operador de coalescência nula: se dataHoraFim for undefined ou null, atribui null
     energiaKwh: novoCarregamento.energiaKwh ?? 0, // se energiaKwh não for fornecido, atribui 0

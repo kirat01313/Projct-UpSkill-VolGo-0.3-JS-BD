@@ -5,6 +5,7 @@ import { menuCarregamentos } from './cli-fred/menuCarregamentos.js';
 import { menuPostos } from './cli-tarik/menuPostos.js';
 import { menuClientes } from './cli-tarik/menuClientes.js';
 import { menuRelatorios } from './menuRelatorios.js';
+import { menuDiferenciador } from './menuDiferenciador.js';                          // submenu das funcionalidades extra (requisito diferenciador)
 import { dashboard } from '../3-services/dashboardService.js';                       // função que calcula os 3 indicadores do dashboard
 
 export function iniciarMenu() {
@@ -19,6 +20,7 @@ function imprimirDashboard() {                                                  
   console.log('=== Dashboard ===');
   console.log(`Carregamentos em curso: ${dados.emCurso}`);                           // indicador 1
   console.log(`Carregamentos terminados: ${dados.terminados}`);
+  console.log(`Carregamentos faturados: ${dados.faturados}`);                        // linha extra: já cobrados
 
   console.log('\nPor posto (só carregamentos terminados):');                         // indicador 2
   let temPosto = false;                                                              // bandeira: vira true se entrar pelo menos uma vez no for...in
@@ -54,6 +56,7 @@ function menuPrincipal() {
     console.log('3. Gerir Tarifários');
     console.log('4. Gerir Carregamentos');
     console.log('5. Relatórios');
+    console.log('6. Funcionalidades extra');
     console.log('0. Sair');
     opcao = readlineSync.question('Escolha uma opção: ');
 
@@ -67,6 +70,8 @@ function menuPrincipal() {
       menuCarregamentos();
     } else if (opcao === '5') {
       menuRelatorios();
+    } else if (opcao === '6') {
+      menuDiferenciador();
     } else if (opcao === '0') {
       console.log('Até já!');
     } else {

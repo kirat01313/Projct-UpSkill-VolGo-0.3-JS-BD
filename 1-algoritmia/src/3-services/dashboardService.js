@@ -77,6 +77,7 @@ export function dashboard() {
   const carregamentos = listarCarregamentos();                                      // busca todos os carregamentos do repositório
   let emCurso = 0;
   let terminados = 0;
+  let faturados = 0;                                                                // contador dos já cobrados (extra, além dos dois que o enunciado pede)
   let porPosto = {};                                                                // objeto para acumular quantidade e energia por posto 
   let porTarifario = {};                                                            // objeto para acumular quantidade e receita por tarifário
 
@@ -88,6 +89,8 @@ export function dashboard() {
       emCurso++;                                                                   // incrementa o contador de carregamentos em curso
     } else if (carregamento.estado === 'terminado') {
       terminados++;                                                                // incrementa o contador de carregamentos terminados
+    } else if (carregamento.estado === 'faturado') {
+      faturados++;                                                                 // incrementa o contador de carregamentos já faturados
     }
 
     // Indicador 2
@@ -126,5 +129,5 @@ export function dashboard() {
     }
   }
 
-  return { emCurso, terminados, porPosto, porTarifario };
+  return { emCurso, terminados, faturados, porPosto, porTarifario };
 }
