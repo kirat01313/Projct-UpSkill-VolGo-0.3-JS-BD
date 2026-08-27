@@ -7,6 +7,10 @@ import { listarClientes } from './clienteRepository.js';
 
 const caminhoCarregamentos = path.join(import.meta.dirname, '../../data/carregamentos.json');   //define o caminho do arquivo JSON que armazenará os dados dos carregamentos
 
+//======================================================
+//  LER  (listar)
+//======================================================
+
 export function listarCarregamentos() {                                                         // lista todos os carregamentos do repositório
   if (!existsSync(caminhoCarregamentos)) return [];                                             //verifica se o arquivo de carregamentos existe; se não existir, retorna um array vazio
   const conteudo = readFileSync(caminhoCarregamentos, 'utf-8');                                 //verifica se o arquivo de carregamentos existe; se não existir, retorna um array vazio
@@ -14,9 +18,9 @@ export function listarCarregamentos() {                                         
   return JSON.parse(conteudo);                                                                  //converte a string JSON em um array de objetos e retorna esse array
 }
 
-function gravarCarregamentos(carregamentos) {                                                   //converte o array de objetos em uma string JSON formatada e grava no arquivo de carregamentos
-  writeFileSync(caminhoCarregamentos, JSON.stringify(carregamentos, null, 2), 'utf-8');         //converte o array de objetos em uma string JSON formatada e grava no arquivo de carregamentos
-}
+//======================================================
+//  ESCREVER  (inserir / atualizar / remover)
+//======================================================
 
 export function inserirCarregamento(novoCarregamento) {
   if (!campoObrigatorio(novoCarregamento.posto)) {
@@ -145,4 +149,12 @@ export function removerCarregamento(id) {
   carregamentos.splice(index, 1);
   gravarCarregamentos(carregamentos);
   return true;
+}
+
+//======================================================
+//  AUXILIAR PRIVADA  (gravação no ficheiro)
+//======================================================
+
+function gravarCarregamentos(carregamentos) {                                                   //converte o array de objetos em uma string JSON formatada e grava no arquivo de carregamentos
+  writeFileSync(caminhoCarregamentos, JSON.stringify(carregamentos, null, 2), 'utf-8');         //converte o array de objetos em uma string JSON formatada e grava no arquivo de carregamentos
 }

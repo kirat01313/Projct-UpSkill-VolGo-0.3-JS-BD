@@ -3,13 +3,16 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs'; //ler ficheir
 
 const caminhoCliente = path.join(import.meta.dirname, '../../data/clientes.json'); //define o endereço do ficheiro e o nome do ficheiro em uma constante
 
+//======================================================
+//  LER  (listar / procurar)
+//======================================================
 
 export function listarClientes() {
-    if (!existsSync(caminhoCliente))                        //verifica se existe ficheiro naquele endereço/nome que indicamos 
+    if (!existsSync(caminhoCliente))                        //verifica se existe ficheiro naquele endereço/nome que indicamos
         return [];                                           // se não existir retorna um array vazio e já sai da função, a linha a seguir nem chega a rodar
     const conteudo = readFileSync(caminhoCliente, 'utf-8'); //Caso exista já o ficheiro ele lê o conteudo 'utf-8' converte os dados para string
-    if (conteudo.trim() === "")                            //se existir um ficheiro mas estiver vazio, faz o mesmo que antes, 
-        return [];                                           //retorna um array vazio e já sai da função, a linha a seguir nem chega a rodar 
+    if (conteudo.trim() === "")                            //se existir um ficheiro mas estiver vazio, faz o mesmo que antes,
+        return [];                                           //retorna um array vazio e já sai da função, a linha a seguir nem chega a rodar
     return JSON.parse(conteudo);                           //Caso tenha algo, reconverte o texto para um array e retorna esse array
 }
 
@@ -20,6 +23,10 @@ export function procurarCliente1(nif) { //Função que procura um cliente pelo n
     }
     return null;
 }
+
+//======================================================
+//  ESCREVER  (inserir / alterar / excluir)
+//======================================================
 
 export function inserirCliente1(cliente) {
     if (procurarCliente1(cliente.nif) !== null) return null;   //se já existir um cliente com o mesmo nif, devolve null
@@ -52,12 +59,11 @@ export function alterarCliente1(nif, dadosNovos) {
 }
 
 export function excluirCliente1(nif) { //Função que exclui um cliente pelo nif, devolvendo true se excluiu, ou false se não encontrou o cliente
-    // TODO (quando o Fred tiver o carregamentoRepository):
-    //   integridade referencial — não remover se houver carregamentos neste cliente
-    //   const carregamentos = listarCarregamentos();
-    //   for (let i = 0; i < carregamentos.length; i++) {
-    //     if (carregamentos[i].cliente === nif) return false;
-    //   }
+
+    const carregamentos = listarCarregamentos();
+    for (let i = 0; i < carregamentos.length; i++) {
+        if (carregamentos[i].cliente === nif) return false;
+    }
 
     const clientes = listarClientes(); //chama a função listarClientes() para pegar o array de clientes já existentes
     const restantes = []; //cria um array vazio para guardar os clientes que não serão excluídos
@@ -71,55 +77,11 @@ export function excluirCliente1(nif) { //Função que exclui um cliente pelo nif
     return true; //devolve true, indicando que o cliente foi excluído com sucesso
 }
 
+//======================================================
+//  AUXILIAR PRIVADA  (gravação no ficheiro)
+//======================================================
+
 function gravarClientes(clientes) { //Função que grava/regrava o array de clientes no ficheiro
-    writeFileSync(caminhoCliente, JSON.stringify(clientes, null, 2), 'utf-8'); //writeFileSync() cria o ficheiro se não existir, ou sobrescreve se já existir. JSON.stringify() converte 
-                                                                            //o array de clientes em string, com indentação de 2 espaços para melhor leitura
+    writeFileSync(caminhoCliente, JSON.stringify(clientes, null, 2), 'utf-8'); //writeFileSync() cria o ficheiro se não existir, ou sobrescreve se já existir. JSON.stringify() converte
+    //o array de clientes em string, com indentação de 2 espaços para melhor leitura
 }
-
-
-
-
-
-
-
-/*
-  REPOSITÓRIO DE CLIENTES  (Tarik)  —  PASSO 4
-  ============================================
-
-  Mesmo molde do postoRepository.js.
-  Fazer só depois desse estar a funcionar.
-
-  ------------------------------------------------------------
-  CAMPOS DE UM CLIENTE
-  ------------------------------------------------------------
-     nome
-     nif              <- chave única (não pode repetir)
-     dataNascimento   <- necessária para a IDADE no relatório 4.2
-     contacto
-     matricula
-
-  ------------------------------------------------------------
-  AS 4 FUNÇÕES
-  ------------------------------------------------------------
-     listarClientes()
-     inserirCliente(cliente)         <- validar NIF (9 dígitos) e duplicados
-     atualizarCliente(nif, dados)
-     removerCliente(nif)             <- integridade: não remover cliente
-                                        com carregamentos associados
-
-  ------------------------------------------------------------
-  FICHEIRO DE DADOS
-  ------------------------------------------------------------
-     data/clientes.json   <- criar à mão, com 2-3 clientes de exemplo
-
-  Dica: usar datas de nascimento variadas (alguém mais novo, alguém
-  mais velho) para testar o cálculo da idade no relatório 4.2.
-
-  ------------------------------------------------------------
-  NOTA SOBRE O NIF
-  ------------------------------------------------------------
-  Guardar como TEXTO, não como número.
-  Não se fazem contas com NIFs, e assim não se perdem zeros à esquerda.
-*/
-
-

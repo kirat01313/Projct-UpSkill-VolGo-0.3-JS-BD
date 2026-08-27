@@ -1,6 +1,25 @@
 import readlineSync from "readline-sync";
 const prompt = readlineSync.question;
 
+/*
+  MAPA DESTE FICHEIRO
+  ===================
+  1. LEITURA — texto e opções       (lerOpcaoValida, lerTextoObrigatorio)
+  2. LEITURA — números              (lerNumeroPositivo, lerNumeroNaoNegativo, lerInteiroPositivo)
+  3. LEITURA — dados do cliente     (lerNif, lerTelefone, lerEmail, lerMatricula)
+  4. LEITURA — datas                (lerData, lerDataHora, lerDataHoraDepoisDe)
+  5. CÁLCULOS com datas             (calcularHorasEntre, calcularIdade)
+  6. VALIDAÇÕES sim/não             (campoObrigatorio, valorPositivo, dataHoraValida) — parte Fred
+  7. AUXILIARES internas            (dataValida1, soDigitos, textoParaDataHora)
+
+  As funções "ler*" perguntam ao utilizador e REPETEM até vir um valor válido.
+  As funções de validação sim/não apenas respondem true/false — quem insiste é quem chama.
+*/
+
+//======================================================
+//  1. LEITURA — TEXTO E OPÇÕES
+//======================================================
+
 export function lerOpcaoValida(mensagem, listaValidos) { //mensagem é o "prompt(`Digite o código do novo Posto: `);"
     let valor = prompt(mensagem).trim().toLowerCase();     //listaValidos vem da constantes.js que lista valores que a empresa usa
     while (!listaValidos.includes(valor)) {                //checa se o valor inserido no prompt está incluido na lista de valores válidos
@@ -19,6 +38,10 @@ export function lerTextoObrigatorio(mensagem) { //função que lê um texto do u
     return valor;
 }
 
+//======================================================
+//  2. LEITURA — NÚMEROS
+//======================================================
+
 export function lerNumeroPositivo(mensagem) { //função que lê um número positivo do usuário, repetindo a solicitação até que o valor seja válido
     let valor = Number(prompt(mensagem).trim());
     while (Number.isNaN(valor) || valor <= 0) {
@@ -27,6 +50,28 @@ export function lerNumeroPositivo(mensagem) { //função que lê um número posi
     }
     return valor;
 }
+
+export function lerNumeroNaoNegativo(mensagem) { //como o lerNumeroPositivo, mas o zero é aceite (ex.: taxa de ativação)
+    let valor = Number(prompt(mensagem).trim());
+    while (Number.isNaN(valor) || valor < 0) {
+        console.log("Insira um número igual ou maior que zero.");
+        valor = Number(prompt(mensagem).trim());
+    }
+    return valor;
+}
+
+export function lerInteiroPositivo(mensagem) { //para IDs: recusa letras e recusa números com casas decimais
+    let valor = Number(prompt(mensagem).trim());
+    while (!Number.isInteger(valor) || valor <= 0) {
+        console.log("Insira um número inteiro maior que zero.");
+        valor = Number(prompt(mensagem).trim());
+    }
+    return valor;
+}
+
+//======================================================
+//  3. LEITURA — DADOS DO CLIENTE
+//======================================================
 
 export function lerNif(mensagem) { //função que lê um NIF do usuário, repetindo a solicitação até que o valor seja válido (9 dígitos)
     let valor = prompt(mensagem).trim();
@@ -64,6 +109,10 @@ export function lerMatricula(mensagem) { //função que lê uma matrícula do us
     return valor;
 }
 
+//======================================================
+//  4. LEITURA — DATAS
+//======================================================
+
 export function lerData(mensagem) { //função que lê uma data do usuário, repetindo a solicitação até que o valor seja válido (formato AAAA-MM-DD)
     let valor = prompt(mensagem).trim();
     while (!dataValida1(valor)) {
@@ -73,41 +122,32 @@ export function lerData(mensagem) { //função que lê uma data do usuário, rep
     return valor;
 }
 
+export function lerDataHora(mensagem) { //função que lê uma data COM hora, repetindo até o formato estar certo
+    let valor = prompt(mensagem).trim();
+    while (!dataHoraValida(valor)) { //dataHoraValida só responde sim/não; é este while que insiste com o utilizador
+        console.log("Data/hora inválida. Use AAAA-MM-DD HH:mm (ex.: 2026-10-05 14:30).");
+        valor = prompt(mensagem).trim();
+    }
+    return valor;
+}
+
+export function lerDataHoraDepoisDe(mensagem, dataHoraInicio) { //função que lê uma data/hora que tem de ser posterior a outra
+    let valor = lerDataHora(mensagem); //reaproveita a de cima: primeiro garante o FORMATO
+    while (calcularHorasEntre(dataHoraInicio, valor) <= 0) { //depois garante a ORDEM
+        console.log("A data/hora de fim tem de ser depois de " + dataHoraInicio + ".");
+        valor = lerDataHora(mensagem);
+    }
+    return valor;
+}
+
+//======================================================
+//  5. CÁLCULOS COM DATAS
+//======================================================
 
 export function calcularHorasEntre(inicio, fim) { //função que calcula a diferença em horas entre duas datas no formato "AAAA-MM-DD HH:mm"
     const milissegundos = textoParaDataHora(fim) - textoParaDataHora(inicio); //subtrair dois Date dá a diferença em milissegundos
     return milissegundos / 1000 / 60 / 60; //milissegundos -> segundos -> minutos -> horas
     //pode dar NEGATIVO se o fim vier antes do início. É de propósito: é assim que se apanham datas trocadas.
-}
-
-//------------- Auxiliares das funções de validação -------------
-
-function dataValida1(data) { //função auxiliar que verifica se uma string é uma data válida no formato AAAA-MM-DD
-    if (data.length !== 10) return false;
-    if (data[4] !== "-" || data[7] !== "-") return false;
-    const ano = Number(data.substring(0, 4)); //substring(0, 4) pega os 4 primeiros caracteres da string sem incluir o índice final (0, 1, 2 e 3)
-    const mes = Number(data.substring(5, 7));
-    const dia = Number(data.substring(8, 10));
-    if (Number.isNaN(ano) || Number.isNaN(mes) || Number.isNaN(dia)) return false;
-    if (mes < 1 || mes > 12) return false;
-    if (dia < 1 || dia > 31) return false;
-    if (ano < 1900 || ano > 2026) return false;
-
-    //até aqui só confirmamos que cada pedaço está na escala certa, mas isso deixa
-    //passar dias que não existem (ex.: 30 de fevereiro). O JavaScript "arruma"
-    //essas datas em vez de as rejeitar (30 de fevereiro vira 2 de março), então
-    //aproveitamos isso: criamos a data e vemos se o mês continua o que pedimos.
-    const dataTeste = new Date(ano, mes - 1, dia); //mes - 1 porque no objeto Date janeiro é 0
-    if (dataTeste.getMonth() !== mes - 1) return false; //se o mês mudou, o dia não existia nesse mês (também apanha anos bissextos)
-
-    return true;
-}
-
-function soDigitos(texto) { //função auxiliar que verifica se uma string contém apenas dígitos
-    for (let i = 0; i < texto.length; i++) {
-        if (texto[i] < "0" || texto[i] > "9") return false;
-    }
-    return true;
 }
 
 // -------------- Calcula a idade a partir de "AAAA-MM-DD" ----------
@@ -129,20 +169,10 @@ export function calcularIdade(dataNascimento) {
     return idade;
 }
 
-// -------------- Converte "AAAA-MM-DD HH:mm" num objeto Date ----------
-function textoParaDataHora(texto) {
-    const ano = Number(texto.substring(0, 4));
-    const mes = Number(texto.substring(5, 7));
-    const dia = Number(texto.substring(8, 10));
-    const hora = Number(texto.substring(11, 13));
-    const min = Number(texto.substring(14, 16));
-    return new Date(ano, mes - 1, dia, hora, min); //mes - 1 porque no objeto Date janeiro é 0
-}
+//======================================================
+//  6. VALIDAÇÕES SIM/NÃO  (parte Fred — usadas nos repositórios)
+//======================================================
 
-
-
-
-//Funções de validação do Fred )
 export function campoObrigatorio(valor) { //função que verifica se um valor é obrigatório (não pode ser undefined, null ou string vazia)
     return valor !== undefined && valor !== null && String(valor).trim() !== ''; //retorna true se o valor não for undefined, null ou string vazia (após remover espaços)
 }
@@ -166,4 +196,47 @@ export function dataHoraValida(valor) { //função que verifica se uma string te
     if (minuto < 0 || minuto > 59) return false; //minuto válido vai de 00 a 59
 
     return true;
+}
+
+//======================================================
+//  7. AUXILIARES INTERNAS
+//======================================================
+
+function dataValida1(data) { //função auxiliar que verifica se uma string é uma data válida no formato AAAA-MM-DD
+    if (data.length !== 10) return false;
+    if (data[4] !== "-" || data[7] !== "-") return false;
+    const ano = Number(data.substring(0, 4)); //substring(0, 4) pega os 4 primeiros caracteres da string sem incluir o índice final (0, 1, 2 e 3)
+    const mes = Number(data.substring(5, 7));
+    const dia = Number(data.substring(8, 10));
+    if (Number.isNaN(ano) || Number.isNaN(mes) || Number.isNaN(dia)) return false;
+    if (mes < 1 || mes > 12) return false;
+    if (dia < 1 || dia > 31) return false;
+    const anoMaximo = new Date().getFullYear() + 1; //teto dinâmico: o ano corrente mais um, para aceitar carregamentos na passagem de ano
+    if (ano < 1900 || ano > anoMaximo) return false;
+
+    //até aqui só confirmamos que cada pedaço está na escala certa, mas isso deixa
+    //passar dias que não existem (ex.: 30 de fevereiro). O JavaScript "arruma"
+    //essas datas em vez de as rejeitar (30 de fevereiro vira 2 de março), então
+    //aproveitamos isso: criamos a data e vemos se o mês continua o que pedimos.
+    const dataTeste = new Date(ano, mes - 1, dia); //mes - 1 porque no objeto Date janeiro é 0
+    if (dataTeste.getMonth() !== mes - 1) return false; //se o mês mudou, o dia não existia nesse mês (também apanha anos bissextos)
+
+    return true;
+}
+
+export function soDigitos(texto) { //função auxiliar que verifica se uma string contém apenas dígitos (exportada: o menuClientes usa-a para validar o NIF sem bloquear o "0" de cancelar)
+    for (let i = 0; i < texto.length; i++) {
+        if (texto[i] < "0" || texto[i] > "9") return false;
+    }
+    return true;
+}
+
+// -------------- Converte "AAAA-MM-DD HH:mm" num objeto Date ----------
+function textoParaDataHora(texto) {
+    const ano = Number(texto.substring(0, 4));
+    const mes = Number(texto.substring(5, 7));
+    const dia = Number(texto.substring(8, 10));
+    const hora = Number(texto.substring(11, 13));
+    const min = Number(texto.substring(14, 16));
+    return new Date(ano, mes - 1, dia, hora, min); //mes - 1 porque no objeto Date janeiro é 0
 }

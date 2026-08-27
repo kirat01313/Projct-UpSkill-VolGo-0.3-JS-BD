@@ -8,11 +8,19 @@ import { menuRelatorios } from './menuRelatorios.js';
 import { menuDiferenciador } from './menuDiferenciador.js';                          // submenu das funcionalidades extra (requisito diferenciador)
 import { dashboard } from '../3-services/dashboardService.js';                       // função que calcula os 3 indicadores do dashboard
 
+//======================================================
+//  1. ARRANQUE DA APLICAÇÃO
+//======================================================
+
 export function iniciarMenu() {
   console.log('Bem-vindo ao VoltGo — sempre a carregar!\n');
   imprimirDashboard();                                                               // mostra o resumo uma única vez, antes do menu aparecer
   menuPrincipal();
 }
+
+//======================================================
+//  2. DASHBOARD  (impressão — quem calcula é o dashboardService)
+//======================================================
 
 function imprimirDashboard() {                                                       // só imprime — quem calcula é o dashboardService.js
   const dados = dashboard();                                                         // pede ao service os 3 indicadores já calculados
@@ -45,6 +53,10 @@ function imprimirDashboard() {                                                  
   }
   console.log('');
 }
+
+//======================================================
+//  3. MENU PRINCIPAL
+//======================================================
 
 function menuPrincipal() {
   let opcao = '';

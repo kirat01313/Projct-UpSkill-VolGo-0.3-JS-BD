@@ -152,5 +152,16 @@
     "energiaKwh": 10,
     "custo": 3,
     "estado": "terminado"
+  },
+  {
+    "id": 15,
+    "posto": "P001",
+    "cliente": "111111111",
+    "tarifario": "Verde",
+    "dataHoraInicio": "2026-04-23 15:45",
+    "dataHoraFim": "2026-12-31 14:30",
+    "energiaKwh": 10,
+    "custo": 3,
+    "estado": "terminado"
   }
 ]

@@ -4,13 +4,16 @@ import { listarCarregamentos } from './carregamentoRepository.js'; //importa a f
 
 const caminhoPostos = path.join(import.meta.dirname, '../../data/postos.json'); //define o endereço do ficheiro e o nome do ficheiro em uma constante
 
+//======================================================
+//  LER  (listar / procurar)
+//======================================================
 
 export function listarPostos() {
-    if (!existsSync(caminhoPostos))                        //verifica se existe ficheiro naquele endereço/nome que indicamos 
+    if (!existsSync(caminhoPostos))                        //verifica se existe ficheiro naquele endereço/nome que indicamos
         return [];                                           // se não existir retorna um array vazio e já sai da função, a linha a seguir nem chega a rodar
     const conteudo = readFileSync(caminhoPostos, 'utf-8'); //Caso exista já o ficheiro ele lê o conteudo 'utf-8' converte os dados para string
-    if (conteudo.trim() === "")                            //se existir um ficheiro mas estiver vazio, faz o mesmo que antes, 
-        return [];                                           //retorna um array vazio e já sai da função, a linha a seguir nem chega a rodar 
+    if (conteudo.trim() === "")                            //se existir um ficheiro mas estiver vazio, faz o mesmo que antes,
+        return [];                                           //retorna um array vazio e já sai da função, a linha a seguir nem chega a rodar
     return JSON.parse(conteudo);                           //Caso tenha algo, reconverte o texto para um array e retorna esse array
 }
 
@@ -21,6 +24,10 @@ export function procurarPosto1(codigo) { //Função que procura um posto pelo c�
     }
     return null;
 }
+
+//======================================================
+//  ESCREVER  (inserir / alterar / excluir)
+//======================================================
 
 export function inserirPosto1(posto) {
     if (procurarPosto1(posto.codigo) !== null) return null;   //se já existir um posto com o mesmo código, devolve null
@@ -69,9 +76,11 @@ export function excluirPosto1(codigo) {
     return true; //devolve true, indicando que o posto foi excluído com sucesso
 }
 
+//======================================================
+//  AUXILIAR PRIVADA  (gravação no ficheiro)
+//======================================================
+
 function gravarPostos(postos) { //Função que grava/regrava o array de postos no ficheiro
-    writeFileSync(caminhoPostos, JSON.stringify(postos, null, 2), 'utf-8'); //writeFileSync() cria o ficheiro se não existir, ou sobrescreve se já existir. JSON.stringify() converte 
+    writeFileSync(caminhoPostos, JSON.stringify(postos, null, 2), 'utf-8'); //writeFileSync() cria o ficheiro se não existir, ou sobrescreve se já existir. JSON.stringify() converte
     //o array de postos em string, com indentação de 2 espaços para melhor leitura
 }
-
-

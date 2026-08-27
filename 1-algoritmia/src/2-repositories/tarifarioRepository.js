@@ -5,6 +5,10 @@ import { listarCarregamentos } from './carregamentoRepository.js';              
 
 const caminhoTarifarios = path.join(import.meta.dirname, '../../data/tarifarios.json');   //define o caminho do arquivo JSON que armazenará os dados dos tarifários
 
+//======================================================
+//  LER  (listar)
+//======================================================
+
 export function listarTarifarios() {
   if (!existsSync(caminhoTarifarios)) return [];                                          //verifica se o arquivo de tarifários existe; se não existir, retorna um array vazio
   const conteudo = readFileSync(caminhoTarifarios, 'utf-8');                              //lê o conteúdo do arquivo de tarifários como uma string
@@ -12,11 +16,11 @@ export function listarTarifarios() {
   return JSON.parse(conteudo);                                                            //converte a string JSON em um array de objetos e retorna esse array
 }
 
-function gravarTarifarios(tarifarios) {
-  writeFileSync(caminhoTarifarios, JSON.stringify(tarifarios, null, 2), 'utf-8');         //converte o array de objetos em uma string JSON formatada e grava no arquivo de tarifários
-}
+//======================================================
+//  ESCREVER  (inserir / atualizar / remover)
+//======================================================
 
-export function inserirTarifario(novoTarifario) { 
+export function inserirTarifario(novoTarifario) {
   if (!campoObrigatorio(novoTarifario.nome)) {
     return null; // nome vazio, recusa
   }
@@ -62,4 +66,12 @@ export function removerTarifario(nome) {
    tarifarios.splice(index, 1);                                                           // remove o tarifário do array de tarifários
    gravarTarifarios(tarifarios);                                                          // grava o array atualizado de tarifários no arquivo JSON
    return true;
+}
+
+//======================================================
+//  AUXILIAR PRIVADA  (gravação no ficheiro)
+//======================================================
+
+function gravarTarifarios(tarifarios) {
+  writeFileSync(caminhoTarifarios, JSON.stringify(tarifarios, null, 2), 'utf-8');         //converte o array de objetos em uma string JSON formatada e grava no arquivo de tarifários
 }
