@@ -163,5 +163,16 @@
     "energiaKwh": 10,
     "custo": 3,
     "estado": "terminado"
+  },
+  {
+    "id": 16,
+    "posto": "P001",
+    "cliente": "299106918",
+    "tarifario": "Verde",
+    "dataHoraInicio": "2026-10-10 10:00",
+    "dataHoraFim": "2026-10-10 12:00",
+    "energiaKwh": 40,
+    "custo": 10.5,
+    "estado": "faturado"
   }
 ]

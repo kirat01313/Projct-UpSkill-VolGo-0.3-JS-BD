@@ -15,13 +15,8 @@
   o carregamento só guarda o CÓDIGO do posto, e o concelho está
   guardado dentro do posto — logo é preciso ir lá buscá-lo.
 
-  (Na Fase 2 isto vira um JOIN + GROUP BY.)
-
-  ------------------------------------------------------------
-  2) relatorioPorCobrar(diasLimite)   <- por escrever
-  ------------------------------------------------------------
-  Carregamentos 'terminado' que ainda não passaram a 'faturado'
-  há mais de X dias, com o total em euros pendente.
+  (Na Fase 2 isto vira um JOIN + GROUP BY — e corresponde ao
+   relatório 6 obrigatório: "Concelhos e valor total faturado".)
 */
 
 import { listarCarregamentos } from '../2-repositories/carregamentoRepository.js'; // devolve todos os carregamentos
