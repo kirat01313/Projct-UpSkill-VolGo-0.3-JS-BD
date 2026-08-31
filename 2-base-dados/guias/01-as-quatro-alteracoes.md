@@ -160,7 +160,7 @@ Rápido        NULL     <-- tarifário descontinuado, sem vigência aberta
 
 ## 4. A funcionalidade Alerta
 
-Tem guia próprio: **`04-parte-E-alerta.md`**.
+Tem guia próprio: **`05-parte-E-alerta.md`**.
 
 Em duas linhas: regista automaticamente carregamentos que declararam mais energia do que o posto conseguiria entregar. Não bloqueia — regista e deixa um humano classificar.
 

@@ -16,12 +16,13 @@ Continua a aplicação de consola da Fase 1.
 ├── LEIA-ME.md                    <-- estás aqui
 │
 ├── guias/                        material de estudo, para ler antes de defender
-│   ├── 00-as-quatro-alteracoes.md      o que mudou depois da conversa com a professora
-│   ├── 01-parte-B-procedures-funcoes-triggers.md
-│   ├── 02-parte-C-relatorios.md
-│   ├── 03-parte-D-relatorio-proposto.md
-│   ├── 04-parte-E-alerta.md
-│   └── 05-perguntas-da-defesa.md       perguntas prováveis e respostas curtas
+│   ├── 00-comeca-aqui.md               o modelo do zero, sem assumir nada
+│   ├── 01-as-quatro-alteracoes.md      o que mudou depois da conversa com a professora
+│   ├── 02-parte-B-procedures-funcoes-triggers.md
+│   ├── 03-parte-C-relatorios.md
+│   ├── 04-parte-D-relatorio-proposto.md
+│   ├── 05-parte-E-alerta.md
+│   └── 06-perguntas-da-defesa.md       perguntas prováveis e respostas curtas
 │
 └── Entregaveis Finais/           o que se entrega
     ├── VoltGo-ModeloRelacional.drawio
@@ -39,9 +40,10 @@ Continua a aplicação de consola da Fase 1.
 
 ## Por onde começar a estudar
 
-1. **`guias/00-as-quatro-alteracoes.md`** — o que mudou e porquê. É o contexto de tudo o resto.
-2. O guia da parte que te calhou (B, C, D ou E).
-3. **`guias/05-perguntas-da-defesa.md`** — na véspera.
+1. **`guias/00-comeca-aqui.md`** — o modelo explicado do zero. Se nunca leste nada disto, começa por aqui.
+2. **`guias/01-as-quatro-alteracoes.md`** — o que mudou depois da conversa com a professora.
+3. O guia da parte que te calhou (B, C, D ou E).
+4. **`guias/06-perguntas-da-defesa.md`** — na véspera.
 
 Os ficheiros `.sql` estão comentados de cima a baixo. Os comentários explicam **porquê**, não só o quê.
 
@@ -84,10 +86,10 @@ sqlcmd -S "localhost\SQLEXPRESS" -E -C -i "01-criar-bd.sql"
 | Dicionário de dados | `VoltGo-DicionarioDados.xlsx` |
 | Script de criação | `01-criar-bd.sql` |
 | Dados de teste | `02-dados-teste.sql` |
-| **B** — procedures, funções, triggers | `03-...sql` + `guias/01-...md` |
-| **C** — 7 relatórios obrigatórios | `04-...sql` + `guias/02-...md` |
-| **D** — relatório estratégico proposto | `05-...sql` + `guias/03-...md` |
-| **E** — funcionalidade nova | `06-...sql` + `guias/04-...md` |
+| **B** — procedures, funções, triggers | `03-...sql` + `guias/02-...md` |
+| **C** — 7 relatórios obrigatórios | `04-...sql` + `guias/03-...md` |
+| **D** — relatório estratégico proposto | `05-...sql` + `guias/04-...md` |
+| **E** — funcionalidade nova | `06-...sql` + `guias/05-...md` |
 
 ---
 

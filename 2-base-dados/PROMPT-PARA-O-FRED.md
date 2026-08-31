@@ -19,12 +19,13 @@ Na pasta `2-base-dados`:
 
 ```
 guias/                                 material de estudo em português
-  00-as-quatro-alteracoes.md           o que mudou depois da conversa com a professora
-  01-parte-B-procedures-funcoes-triggers.md
-  02-parte-C-relatorios.md
-  03-parte-D-relatorio-proposto.md
-  04-parte-E-alerta.md
-  05-perguntas-da-defesa.md
+  00-comeca-aqui.md                    o modelo explicado do zero
+  01-as-quatro-alteracoes.md           o que mudou depois da conversa com a professora
+  02-parte-B-procedures-funcoes-triggers.md
+  03-parte-C-relatorios.md
+  04-parte-D-relatorio-proposto.md
+  05-parte-E-alerta.md
+  06-perguntas-da-defesa.md
 
 Entregaveis Finais/                    o que se entrega
   VoltGo-ModeloRelacional.drawio       diagrama final
@@ -38,7 +39,7 @@ Entregaveis Finais/                    o que se entrega
   06-parte-e-alerta.sql                PARTE E — funcionalidade nova
 ```
 
-**Lê primeiro `guias/00-as-quatro-alteracoes.md` e depois `Entregaveis Finais/01-criar-bd.sql`.** Os scripts estão todos comentados a explicar o *porquê* de cada decisão, não só o *quê*.
+**Lê primeiro `guias/00-comeca-aqui.md`, depois `guias/01-as-quatro-alteracoes.md` e depois `Entregaveis Finais/01-criar-bd.sql`.** Os scripts estão todos comentados a explicar o *porquê* de cada decisão, não só o *quê*.
 
 ## Estado atual
 
