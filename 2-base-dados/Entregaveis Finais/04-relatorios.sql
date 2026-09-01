@@ -198,7 +198,7 @@ GO
    chegar ao fim com zero.
 
    DOIS CUIDADOS
-
+   
    COUNT(DISTINCT ...) — a cadeia repete o posto uma vez por cada tomada e por
    cada carregamento. Sem DISTINCT, um posto com 3 tomadas contava 3 vezes.
 

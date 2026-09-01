@@ -1,45 +1,34 @@
 /* ============================================================================
-   VoltGo — 03 — Procedimentos, funções e triggers          REQUISITO ORAL
+   VoltGo — 03 — Procedimentos, funções e triggers
    ============================================================================
    Correr depois do 01 e do 02, e ANTES dos relatórios: o trigger de
-   sincronização preenche o preço em vigor de cada tarifário, que o relatório 3
-   mostra.
+   sincronização preenche o preço em vigor de cada tarifário, que o
+   relatório 3 mostra.
 
-   NOTA SOBRE O ENUNCIADO
-   Os pontos 4.1 a 4.5 do enunciado escrito não pedem procedimentos, funções
-   nem triggers. Este ficheiro responde a um pedido feito ORALMENTE pela
-   docente: CRUD com stored procedures em três tabelas, uma função de
-   estatística e um trigger com lógica automática.
+   NOTA: este script responde a um pedido feito em aula, para aplicar os
+   conceitos dados. Não corresponde a nenhuma das partes A–E do enunciado
+   (a Parte B é o esquema, no script 01).
 
-   O QUE ESTÁ AQUI E PORQUÊ
+   ----------------------------------------------------------------------------
+   OS TRÊS OBJETOS, E A DIFERENÇA ENTRE ELES
+     Trigger      REAGE sozinho a uma alteração. Ninguém o chama.
+     Procedure    FAZ coisas. Chama-se com EXEC. Pode alterar dados.
+     Função       RESPONDE a uma pergunta. Usa-se dentro de um SELECT.
+                  Nunca altera dados.
 
-     PROCEDIMENTOS  CRUD completo em TRÊS tabelas, escolhidas para mostrarem
-                    situações diferentes:
+   ----------------------------------------------------------------------------
+   AS TRÊS CONVENÇÕES USADAS EM TODO O SCRIPT
 
-                      Tarifário      remoção LÓGICA. Não se apaga: descontinua-se
-                                     e fecha-se a vigência de preço. Precisa de
-                                     transação, porque são duas tabelas.
-                      TipoConector   remoção FÍSICA travada pela chave
-                                     estrangeira: só sai se nenhuma tomada o usar.
-                      Concelho       o mesmo, travado pelos postos instalados.
+   1. Erros com THROW <numero>, N'<mensagem>', 1
+      Numeração por tabela, para se saber de onde veio o erro:
+          501xx  TipoConector      502xx  Concelho      503xx  Tarifario
 
-                    A regra 3.8 proíbe remover fisicamente dados "quando perdem
-                    validade operacional". Um tarifário descontinuado perdeu-a e
-                    fica; um tipo de conector inserido por engano, que nada usa,
-                    nunca a teve — esse pode sair.
+   2. SET XACT_ABORT ON nas procedures que abrem transação.
+      Quer dizer: "se alguma coisa correr mal, desfaz tudo automaticamente".
+      Poupa o bloco TRY/CATCH inteiro.
 
-     FUNÇÕES        Uma escalar (devolve um número) e uma de tabela (devolve
-                    linhas), para cobrir os dois tipos.
-
-     TRIGGERS       Três. Dois de auditoria — o histórico deixa de depender de
-                    quem escreve o código. Um de sincronização — é ele que
-                    torna segura a cópia do preço dentro do Tarifario.
-
-   DIFERENÇA ENTRE OS TRÊS OBJETOS
-     Procedimento   FAZ coisas. Chama-se com EXEC. Pode alterar dados.
-     Função         RESPONDE a uma pergunta. Usa-se dentro de um SELECT.
-                    Nunca altera dados.
-     Trigger        REAGE sozinho. Ninguém o chama.
+   3. Validar antes de agir, e sair logo (THROW interrompe a procedure).
+      O corpo principal fica só com o trabalho, sem IFs encaixados.
    ============================================================================ */
 
 SET NOCOUNT ON;
@@ -51,14 +40,11 @@ USE VoltGo;
 GO
 
 /* Limpeza, para o script poder ser corrido as vezes que forem precisas.
-   As funções saem pela ordem inversa da dependência: a de tabela usa a escalar. */
+   As funções saem por último: a de tabela não depende da escalar, mas manter
+   a ordem inversa da criação evita surpresas. */
 DROP TRIGGER   IF EXISTS TR_Carregamento_Historico;
 DROP TRIGGER   IF EXISTS TR_Ocorrencia_Historico;
 DROP TRIGGER   IF EXISTS TR_TarifarioPreco_SincronizaAtual;
-DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Inserir;
-DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Listar;
-DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Atualizar;
-DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Descontinuar;
 DROP PROCEDURE IF EXISTS dbo.usp_TipoConector_Inserir;
 DROP PROCEDURE IF EXISTS dbo.usp_TipoConector_Listar;
 DROP PROCEDURE IF EXISTS dbo.usp_TipoConector_Atualizar;
@@ -67,6 +53,10 @@ DROP PROCEDURE IF EXISTS dbo.usp_Concelho_Inserir;
 DROP PROCEDURE IF EXISTS dbo.usp_Concelho_Listar;
 DROP PROCEDURE IF EXISTS dbo.usp_Concelho_Atualizar;
 DROP PROCEDURE IF EXISTS dbo.usp_Concelho_Eliminar;
+DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Inserir;
+DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Listar;
+DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Atualizar;
+DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Descontinuar;
 DROP FUNCTION  IF EXISTS dbo.fn_EstatisticasPosto;
 DROP FUNCTION  IF EXISTS dbo.fn_PrecoEmVigor;
 GO
@@ -76,27 +66,23 @@ GO
    PARTE 1 — TRIGGERS
    ############################################################################
 
-   A ÚNICA COISA QUE É PRECISO PERCEBER ANTES DE LER O CÓDIGO
+   O QUE É PRECISO SABER ANTES DE LER
 
-   Dentro de um trigger existem duas tabelas especiais, criadas pelo SQL Server:
+   Quando um trigger dispara, o SQL Server cria duas tabelas temporárias:
 
         inserted   →  como as linhas ficaram DEPOIS
         deleted    →  como as linhas estavam ANTES
 
-   E a armadilha número um de quem começa:
+   É a combinação delas que diz que operação aconteceu:
 
-        SÃO TABELAS, NÃO SÃO LINHAS.
+        só no inserted   →  INSERT   (não havia "antes")
+        nas duas         →  UPDATE
+        só no deleted    →  DELETE   (não há "depois")
 
+   E a armadilha número um: SÃO TABELAS, NÃO SÃO LINHAS.
    Um UPDATE que mexa em 50 linhas dispara o trigger UMA vez, com 50 linhas
-   dentro do 'inserted'. Quem o escreve a pensar numa linha só (SELECT @var = ...)
-   trata uma e ignora as outras 49 — sem erro nenhum, em silêncio.
-
-   Por isso tudo aqui dentro é INSERT...SELECT, que trata o conjunto de uma vez.
-
-   Como saber que operação foi:
-        está em inserted e não em deleted  →  INSERT
-        está nas duas                      →  UPDATE
-        está só em deleted                 →  DELETE
+   lá dentro. Por isso aqui não há ciclos nem variáveis — só INSERT...SELECT
+   e UPDATE...FROM, que tratam o conjunto todo de uma vez.
    ############################################################################ */
 
 
@@ -104,11 +90,8 @@ GO
    TR_Carregamento_Historico
    Regra 3.5: "alterações relevantes devem ser registadas para consulta futura"
 
-   Até agora o histórico era preenchido à mão, no script 02. Isso tem um
-   problema: basta alguém esquecer-se uma vez e o histórico passa a mentir.
-   Com o trigger, deixa de depender de quem escreve o código — qualquer INSERT
-   ou UPDATE fica registado, venha de uma procedure, de uma aplicação ou de
-   alguém a escrever SQL à mão.
+   Sem o trigger, o histórico dependia de alguém se lembrar de o escrever.
+   Basta uma distração e passa a mentir.
    ---------------------------------------------------------------------------- */
 CREATE TRIGGER TR_Carregamento_Historico
 ON Carregamento
@@ -117,18 +100,20 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    /* Carregamentos NOVOS: estão no inserted e não no deleted.
-       EstadoAnterior fica NULL — antes disto o carregamento não existia. */
-    INSERT INTO CarregamentoHistorico (IDCarregamento, DataHora, EstadoAnterior, EstadoNovo, Observacao)
+    /* REGISTOS NOVOS: estão no inserted e não existiam antes.
+       EstadoAnterior fica NULL — não havia estado nenhum antes disto. */
+    INSERT INTO CarregamentoHistorico
+           (IDCarregamento, DataHora, EstadoAnterior, EstadoNovo, Observacao)
     SELECT i.IDCarregamento, SYSDATETIME(), NULL, i.Estado, N'Registo criado'
     FROM   inserted i
-           LEFT JOIN deleted d ON d.IDCarregamento = i.IDCarregamento
-    WHERE  d.IDCarregamento IS NULL;
+    WHERE  NOT EXISTS (SELECT 1 FROM deleted d
+                       WHERE d.IDCarregamento = i.IDCarregamento);
 
-    /* MUDANÇAS DE ESTADO: estão nas duas tabelas.
-       Só se regista se o estado mudou mesmo — um UPDATE que corrija o custo
-       não é uma mudança de estado e não deve sujar o histórico. */
-    INSERT INTO CarregamentoHistorico (IDCarregamento, DataHora, EstadoAnterior, EstadoNovo, Observacao)
+    /* MUDANÇAS DE ESTADO: existiam antes, e o estado mudou mesmo.
+       O <> é o filtro que interessa: um UPDATE que só corrija o custo não é
+       uma mudança de estado e não deve sujar o histórico. */
+    INSERT INTO CarregamentoHistorico
+           (IDCarregamento, DataHora, EstadoAnterior, EstadoNovo, Observacao)
     SELECT i.IDCarregamento, SYSDATETIME(), d.Estado, i.Estado, N'Mudança de estado'
     FROM   inserted i
            INNER JOIN deleted d ON d.IDCarregamento = i.IDCarregamento
@@ -140,7 +125,7 @@ GO
 /* ----------------------------------------------------------------------------
    TR_Ocorrencia_Historico
    Regra 3.7: "estados distintos ao longo do seu ciclo de vida"
-   Mesmo padrão, para as manutenções.
+   Exatamente o mesmo padrão, aplicado às manutenções.
    ---------------------------------------------------------------------------- */
 CREATE TRIGGER TR_Ocorrencia_Historico
 ON Ocorrencia
@@ -149,13 +134,15 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO OcorrenciaHistorico (IDOcorrencia, DataHora, EstadoAnterior, EstadoNovo, Observacao)
+    INSERT INTO OcorrenciaHistorico
+           (IDOcorrencia, DataHora, EstadoAnterior, EstadoNovo, Observacao)
     SELECT i.IDOcorrencia, SYSDATETIME(), NULL, i.Estado, N'Ocorrência registada'
     FROM   inserted i
-           LEFT JOIN deleted d ON d.IDOcorrencia = i.IDOcorrencia
-    WHERE  d.IDOcorrencia IS NULL;
+    WHERE  NOT EXISTS (SELECT 1 FROM deleted d
+                       WHERE d.IDOcorrencia = i.IDOcorrencia);
 
-    INSERT INTO OcorrenciaHistorico (IDOcorrencia, DataHora, EstadoAnterior, EstadoNovo, Observacao)
+    INSERT INTO OcorrenciaHistorico
+           (IDOcorrencia, DataHora, EstadoAnterior, EstadoNovo, Observacao)
     SELECT i.IDOcorrencia, SYSDATETIME(), d.Estado, i.Estado, N'Mudança de estado'
     FROM   inserted i
            INNER JOIN deleted d ON d.IDOcorrencia = i.IDOcorrencia
@@ -165,21 +152,16 @@ GO
 
 
 /* ----------------------------------------------------------------------------
-   TR_TarifarioPreco_SincronizaAtual                       ★ O MAIS IMPORTANTE
+   TR_TarifarioPreco_SincronizaAtual
    ----------------------------------------------------------------------------
-   O Tarifario tem uma CÓPIA do preço em vigor (PrecoKwhAtual, TaxaAtivacaoAtual)
-   para simplificar as consultas — evita o JOIN com a TarifarioPreco sempre que
-   só se quer o preço de hoje.
+   O Tarifario tem uma CÓPIA do preço em vigor, para as consultas não terem de
+   ir sempre à TarifarioPreco. É uma redundância assumida — e dois sítios com o
+   mesmo facto acabam sempre por divergir, a menos que alguém garanta que não.
+   É este trigger esse alguém.
 
-   Isso é uma desnormalização deliberada: o mesmo facto passa a estar em dois
-   sítios. E dois sítios com o mesmo facto acabam sempre por divergir — a menos
-   que alguém garanta o contrário. É este trigger esse alguém.
-
-   Sempre que uma vigência é criada, alterada ou apagada, ele recalcula a cópia
-   a partir da fonte da verdade, que continua a ser a TarifarioPreco.
-
-   O que se ganha: consultas simples E histórico completo.
-   O que se paga: este trigger tem de existir e não pode ser desligado.
+   O LEFT JOIN resolve os dois casos de uma vez: se o tarifário tiver vigência
+   aberta, copia o preço; se não tiver, o JOIN não encontra nada e a cópia fica
+   a NULL — que é a resposta certa para "não há preço em vigor".
    ---------------------------------------------------------------------------- */
 CREATE TRIGGER TR_TarifarioPreco_SincronizaAtual
 ON TarifarioPreco
@@ -188,26 +170,18 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    /* Cada coluna vai buscar o seu valor a uma SUBCONSULTA.
-
-       Uma subconsulta que não encontra nada devolve NULL — e é isso mesmo que
-       queremos: se o tarifário ficar sem vigência aberta, a cópia tem de ir a
-       NULL em vez de ficar com o valor antigo.
-
-       O WHERE limita a alteração aos tarifários afetados, que podem vir de
-       qualquer uma das duas tabelas do trigger: de 'inserted' (criou ou
-       alterou) ou de 'deleted' (apagou ou alterou). */
-    UPDATE Tarifario
-    SET    PrecoKwhAtual = (SELECT TOP 1 tp.PrecoKwh
-                            FROM   TarifarioPreco tp
-                            WHERE  tp.IDTarifario = Tarifario.IDTarifario
-                              AND  tp.DataFim IS NULL),      -- a vigência em vigor
-           TaxaAtivacaoAtual = (SELECT TOP 1 tp.TaxaAtivacao
-                                FROM   TarifarioPreco tp
-                                WHERE  tp.IDTarifario = Tarifario.IDTarifario
-                                  AND  tp.DataFim IS NULL)
-    WHERE  IDTarifario IN (SELECT IDTarifario FROM inserted)
-       OR  IDTarifario IN (SELECT IDTarifario FROM deleted);
+    UPDATE t
+    SET    t.PrecoKwhAtual     = tp.PrecoKwh,
+           t.TaxaAtivacaoAtual = tp.TaxaAtivacao
+    FROM   Tarifario t
+           LEFT JOIN TarifarioPreco tp
+                  ON tp.IDTarifario = t.IDTarifario
+                 AND tp.DataFim IS NULL           -- a vigência em vigor
+    /* Só os tarifários afetados. Podem vir do inserted (criou/alterou) ou do
+       deleted (apagou/alterou), por isso é a união dos dois. */
+    WHERE  t.IDTarifario IN (SELECT IDTarifario FROM inserted
+                             UNION
+                             SELECT IDTarifario FROM deleted);
 END
 GO
 
@@ -215,8 +189,7 @@ GO
 /* ----------------------------------------------------------------------------
    SINCRONIZAÇÃO INICIAL
    Os dados do script 02 entraram antes de este trigger existir, por isso a
-   cópia está a NULL. Um UPDATE que não muda nada é suficiente para disparar o
-   trigger e pôr tudo em dia.
+   cópia está a NULL. Um UPDATE que não muda nada chega para o disparar.
    ---------------------------------------------------------------------------- */
 UPDATE TarifarioPreco SET IDTarifario = IDTarifario;
 GO
@@ -228,270 +201,55 @@ GO
 
 
 /* ############################################################################
-   PARTE 2A — CRUD DO TARIFÁRIO  ·  remoção LÓGICA
+   PARTE 2 — CRUD
+   ############################################################################
+
+   Três tabelas, com a MESMA estrutura em todas as procedures. Quem perceber
+   uma percebe as doze.
+
+   O que muda entre elas é só a regra de remoção — e é de propósito, porque
+   são as duas metades da regra 3.8 ("os dados não devem ser fisicamente
+   removidos quando perdem validade operacional"):
+
+     TipoConector   remoção FÍSICA    nunca teve histórico a preservar; um tipo
+     Concelho       remoção FÍSICA    que ninguém usa é um engano de inserção,
+                                      e corrigir um engano não é destruir nada
+
+     Tarifario      remoção LÓGICA    tem carregamentos e faturas antigas
+                                      agarradas. Apagá-lo tornava-as
+                                      inexplicáveis. Marca-se como não
+                                      comercializado e fica tudo intacto.
    ############################################################################ */
-
-/* ----------------------------------------------------------------------------
-   C — CREATE
-   Cria o tarifário E a sua primeira vigência de preço numa só operação.
-
-   As duas coisas têm de acontecer juntas: um tarifário sem preço não serve
-   para nada. Por isso vão dentro de uma TRANSAÇÃO — ou entram as duas, ou não
-   entra nenhuma. Se o segundo INSERT falhar, o ROLLBACK desfaz o primeiro.
-   ---------------------------------------------------------------------------- */
-CREATE PROCEDURE dbo.usp_Tarifario_Inserir
-    @Nome         NVARCHAR(40),
-    @PrecoKwh     DECIMAL(8,4),
-    @TaxaAtivacao DECIMAL(8,2) = 0,        -- valor por omissão
-    @DataInicio   DATE         = NULL,     -- NULL = a partir de hoje
-    @IDTarifario  INT          OUTPUT      -- devolve o ID criado
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    IF @DataInicio IS NULL
-        SET @DataInicio = CAST(GETDATE() AS DATE);
-
-    /* Validações próprias, antes de tocar na base de dados: dão mensagens em
-       português em vez do erro cru do SQL Server. */
-    IF EXISTS (SELECT 1 FROM Tarifario WHERE Nome = @Nome)
-    BEGIN
-        RAISERROR(N'Já existe um tarifário com o nome "%s".', 16, 1, @Nome);
-        RETURN;
-    END
-
-    IF @PrecoKwh <= 0
-    BEGIN
-        RAISERROR(N'O preço por kWh tem de ser maior do que zero.', 16, 1);
-        RETURN;
-    END
-
-    BEGIN TRY
-        BEGIN TRANSACTION;
-
-            INSERT INTO Tarifario (Nome, Comercializado)
-            VALUES (@Nome, 1);
-
-            SET @IDTarifario = SCOPE_IDENTITY();   -- o ID que o IDENTITY gerou
-
-            INSERT INTO TarifarioPreco (IDTarifario, DataInicio, DataFim, PrecoKwh, TaxaAtivacao)
-            VALUES (@IDTarifario, @DataInicio, NULL, @PrecoKwh, @TaxaAtivacao);
-            /* o trigger de sincronização preenche a cópia sozinho, aqui */
-
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-        THROW;   -- devolve o erro original, com o número e a linha certos
-    END CATCH
-END
-GO
-
-
-/* ----------------------------------------------------------------------------
-   R — READ
-   @IDTarifario NULL → todos.   @SoAtivos 1 → esconde os descontinuados.
-   ---------------------------------------------------------------------------- */
-CREATE PROCEDURE dbo.usp_Tarifario_Listar
-    @IDTarifario INT = NULL,
-    @SoAtivos    BIT = 0
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT t.IDTarifario,
-           t.Nome,
-           CASE t.Comercializado WHEN 1 THEN 'Sim' ELSE 'Nao' END AS AindaSeVende,
-           t.PrecoKwhAtual,
-           t.TaxaAtivacaoAtual,
-           (SELECT COUNT(*) FROM TarifarioPreco h WHERE h.IDTarifario = t.IDTarifario) AS AlteracoesDePreco,
-           (SELECT COUNT(*) FROM Carregamento  c WHERE c.IDTarifario = t.IDTarifario) AS Carregamentos
-    FROM   Tarifario t
-    WHERE  (@IDTarifario IS NULL OR t.IDTarifario = @IDTarifario)
-      AND  (@SoAtivos = 0       OR t.Comercializado = 1)
-    ORDER BY t.Nome;
-END
-GO
-
-
-/* ----------------------------------------------------------------------------
-   U — UPDATE
-   O preço NÃO se escreve por cima do antigo: fecha-se a vigência atual e
-   abre-se outra. É a regra 3.2 — as condições variam ao longo do tempo, e o
-   histórico tem de ficar.
-   ---------------------------------------------------------------------------- */
-CREATE PROCEDURE dbo.usp_Tarifario_Atualizar
-    @IDTarifario  INT,
-    @NovoNome     NVARCHAR(40) = NULL,     -- NULL = não mexer no nome
-    @NovoPrecoKwh DECIMAL(8,4) = NULL,     -- NULL = não mexer no preço
-    @NovaTaxa     DECIMAL(8,2) = NULL,
-    @DataInicio   DATE         = NULL      -- quando o preço novo entra em vigor
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    IF NOT EXISTS (SELECT 1 FROM Tarifario WHERE IDTarifario = @IDTarifario)
-    BEGIN
-        RAISERROR(N'Não existe nenhum tarifário com o ID %d.', 16, 1, @IDTarifario);
-        RETURN;
-    END
-
-    IF @DataInicio IS NULL
-        SET @DataInicio = CAST(GETDATE() AS DATE);
-
-    /* A vigência nova tem de começar DEPOIS da que está aberta. Senão, ao
-       fechar a antiga com DataFim = @DataInicio - 1, ela ficaria com um fim
-       anterior ao próprio início — e o CHK_TarifPreco_Datas recusa. */
-    DECLARE @InicioAtual DATE =
-        (SELECT DataInicio FROM TarifarioPreco
-         WHERE IDTarifario = @IDTarifario AND DataFim IS NULL);
-
-    IF @NovoPrecoKwh IS NOT NULL AND @InicioAtual IS NOT NULL AND @DataInicio <= @InicioAtual
-    BEGIN
-        /* o RAISERROR não aceita DATE nos %s: tem de ir convertida para texto */
-        DECLARE @Txt VARCHAR(10) = CONVERT(VARCHAR(10), @InicioAtual, 23);
-        RAISERROR(N'O preço novo tem de começar depois de %s, início da vigência atual.', 16, 1, @Txt);
-        RETURN;
-    END
-
-    BEGIN TRY
-        BEGIN TRANSACTION;
-
-            IF @NovoNome IS NOT NULL
-                UPDATE Tarifario SET Nome = @NovoNome WHERE IDTarifario = @IDTarifario;
-
-            IF @NovoPrecoKwh IS NOT NULL
-            BEGIN
-                -- 1) fecha a vigência que estava aberta
-                UPDATE TarifarioPreco
-                SET    DataFim = DATEADD(DAY, -1, @DataInicio)
-                WHERE  IDTarifario = @IDTarifario AND DataFim IS NULL;
-
-                -- 2) abre a nova (o trigger sincroniza a cópia)
-                INSERT INTO TarifarioPreco (IDTarifario, DataInicio, DataFim, PrecoKwh, TaxaAtivacao)
-                VALUES (@IDTarifario, @DataInicio, NULL, @NovoPrecoKwh, ISNULL(@NovaTaxa, 0));
-            END
-
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-        THROW;
-    END CATCH
-END
-GO
-
-
-/* ----------------------------------------------------------------------------
-   D — DELETE (que não apaga nada)
-
-   Regra 3.8: "os dados não devem ser fisicamente removidos quando perdem
-   validade operacional".
-
-   Um tarifário com carregamentos antigos NÃO pode desaparecer: as faturas
-   passadas deixariam de fazer sentido. Por isso o "delete" é lógico —
-   Comercializado = 0. Deixa de se vender, o histórico fica intacto.
-
-   Só se apaga a sério se nunca tiver sido usado por ninguém.
-   ---------------------------------------------------------------------------- */
-CREATE PROCEDURE dbo.usp_Tarifario_Descontinuar
-    @IDTarifario INT,
-    @Forcar      BIT = 0     -- 1 = apagar mesmo, se nunca tiver sido usado
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    IF NOT EXISTS (SELECT 1 FROM Tarifario WHERE IDTarifario = @IDTarifario)
-    BEGIN
-        RAISERROR(N'Não existe nenhum tarifário com o ID %d.', 16, 1, @IDTarifario);
-        RETURN;
-    END
-
-    DECLARE @Usos INT = (SELECT COUNT(*) FROM Carregamento WHERE IDTarifario = @IDTarifario);
-
-    BEGIN TRY
-        BEGIN TRANSACTION;
-
-            IF @Forcar = 1 AND @Usos = 0
-            BEGIN
-                DELETE FROM TarifarioPreco WHERE IDTarifario = @IDTarifario;
-                DELETE FROM Tarifario      WHERE IDTarifario = @IDTarifario;
-                PRINT N'Tarifário removido (nunca tinha sido usado).';
-            END
-            ELSE
-            BEGIN
-                UPDATE Tarifario SET Comercializado = 0 WHERE IDTarifario = @IDTarifario;
-
-                /* Fecha o preço em vigor: deixou de haver preço a praticar.
-                   Fecha-se hoje — exceto se a vigência ainda nem começou
-                   (preço agendado), caso em que fecha no próprio dia de início:
-                   nada pode acabar antes de começar. */
-                DECLARE @Hoje DATE = CAST(GETDATE() AS DATE);
-                UPDATE TarifarioPreco
-                SET    DataFim = CASE WHEN DataInicio > @Hoje THEN DataInicio ELSE @Hoje END
-                WHERE  IDTarifario = @IDTarifario AND DataFim IS NULL;
-
-                PRINT N'Tarifário descontinuado. Histórico preservado.';
-            END
-
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-        THROW;
-    END CATCH
-END
-GO
-
 
 
 /* ############################################################################
-   PARTE 2B — CRUD DO TIPO DE CONECTOR  ·  remoção FÍSICA travada pela FK
-   ############################################################################
-   O Tarifário mostra a remoção lógica. Esta tabela mostra a outra metade da
-   história: quando é legítimo apagar mesmo, e o que impede o disparate.
-
-   A regra 3.8 proíbe remover dados "quando perdem validade operacional". Um
-   tipo de conector que nada usa nunca chegou a ter validade operacional — é um
-   engano de inserção, e corrigir um engano não é destruir histórico.
-
-   Quem decide se pode sair não é o nosso código: é a CHAVE ESTRANGEIRA. Se
-   houver uma tomada a apontar para o tipo, o SQL Server recusa o DELETE. O que
-   a procedure acrescenta é uma mensagem que se percebe, em vez do erro cru
-   sobre a restrição FK_PostoConector_TipoConector.
+   2A — TIPO DE CONECTOR   ·   remoção física, travada pela FK
    ############################################################################ */
 
-/* ----------------------------------------------------------------------------
-   C — CREATE
-   A coluna Designacao já tem UNIQUE. A verificação aqui não substitui a
-   restrição: serve para devolver uma frase legível em vez do erro 2627.
-   ---------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.usp_TipoConector_Inserir
-    @Designacao      NVARCHAR(40),
-    @IDTipoConector  INT = NULL OUTPUT
+    @Designacao     NVARCHAR(40),
+    @IDTipoConector INT = NULL OUTPUT      -- devolve o ID criado
 AS
 BEGIN
     SET NOCOUNT ON;
 
     IF LTRIM(RTRIM(ISNULL(@Designacao, N''))) = N''
-        THROW 50101, N'A designacao do tipo de conector e obrigatoria.', 1;
+        THROW 50101, N'A designação do tipo de conector é obrigatória.', 1;
 
+    /* A coluna já tem UNIQUE. Isto não substitui a restrição — só troca o
+       erro 2627 do SQL Server por uma frase que se percebe. */
     IF EXISTS (SELECT 1 FROM TipoConector WHERE Designacao = @Designacao)
-        THROW 50102, N'Ja existe um tipo de conector com essa designacao.', 1;
+        THROW 50102, N'Já existe um tipo de conector com essa designação.', 1;
 
     INSERT INTO TipoConector (Designacao) VALUES (@Designacao);
 
-    SET @IDTipoConector = SCOPE_IDENTITY();   -- o id que o IDENTITY acabou de gerar
+    SET @IDTipoConector = SCOPE_IDENTITY();   -- o ID que o IDENTITY gerou
 END
 GO
 
 
-/* ----------------------------------------------------------------------------
-   R — READ
-   LEFT JOIN de propósito: um tipo de conector sem tomadas TEM de aparecer na
-   listagem — é precisamente o que se pode eliminar. Com INNER JOIN ele
-   desaparecia do ecrã de gestão.
-   ---------------------------------------------------------------------------- */
+/* LEFT JOIN de propósito: um tipo sem tomadas TEM de aparecer na listagem —
+   é precisamente o que pode ser eliminado. Com INNER JOIN desaparecia. */
 CREATE PROCEDURE dbo.usp_TipoConector_Listar
 AS
 BEGIN
@@ -511,9 +269,6 @@ END
 GO
 
 
-/* ----------------------------------------------------------------------------
-   U — UPDATE
-   ---------------------------------------------------------------------------- */
 CREATE PROCEDURE dbo.usp_TipoConector_Atualizar
     @IDTipoConector INT,
     @Designacao     NVARCHAR(40)
@@ -524,11 +279,11 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM TipoConector WHERE IDTipoConector = @IDTipoConector)
         THROW 50103, N'Tipo de conector inexistente.', 1;
 
-    /* o <> exclui a própria linha: renomear um registo para o nome que já tem
-       não pode ser tratado como duplicado */
+    /* O <> exclui a própria linha: gravar um registo com o nome que já tem
+       não pode ser tratado como duplicado. */
     IF EXISTS (SELECT 1 FROM TipoConector
                WHERE Designacao = @Designacao AND IDTipoConector <> @IDTipoConector)
-        THROW 50104, N'Ja existe outro tipo de conector com essa designacao.', 1;
+        THROW 50104, N'Já existe outro tipo de conector com essa designação.', 1;
 
     UPDATE TipoConector
     SET    Designacao = @Designacao
@@ -537,9 +292,9 @@ END
 GO
 
 
-/* ----------------------------------------------------------------------------
-   D — DELETE (físico, verificado)
-   ---------------------------------------------------------------------------- */
+/* Quem decide se pode sair não é esta procedure: é a chave estrangeira. Se
+   houver tomadas a apontar para o tipo, o SQL Server recusa o DELETE de
+   qualquer forma. O que a verificação acrescenta é a mensagem. */
 CREATE PROCEDURE dbo.usp_TipoConector_Eliminar
     @IDTipoConector INT
 AS
@@ -549,16 +304,8 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM TipoConector WHERE IDTipoConector = @IDTipoConector)
         THROW 50105, N'Tipo de conector inexistente.', 1;
 
-    DECLARE @Tomadas INT =
-        (SELECT COUNT(*) FROM PostoConector WHERE IDTipoConector = @IDTipoConector);
-
-    IF @Tomadas > 0
-    BEGIN
-        DECLARE @Msg NVARCHAR(300) =
-            N'Nao e possivel eliminar: existem ' + CAST(@Tomadas AS NVARCHAR(10))
-            + N' tomadas associadas a este tipo de conector.';
-        THROW 50106, @Msg, 1;
-    END
+    IF EXISTS (SELECT 1 FROM PostoConector WHERE IDTipoConector = @IDTipoConector)
+        THROW 50106, N'Não é possível eliminar: há tomadas com este tipo de conector.', 1;
 
     DELETE FROM TipoConector WHERE IDTipoConector = @IDTipoConector;
 END
@@ -566,24 +313,24 @@ GO
 
 
 /* ############################################################################
-   PARTE 2C — CRUD DO CONCELHO  ·  remoção FÍSICA travada pela FK
+   2B — CONCELHO   ·   remoção física, travada pela FK
    ############################################################################
-   Mesma estrutura da anterior. O que muda é a tabela que trava o DELETE: aqui
-   são os postos instalados no concelho.
+   Mesma estrutura da anterior. O que muda é a tabela que trava o DELETE:
+   aqui são os postos instalados no concelho.
    ############################################################################ */
 
 CREATE PROCEDURE dbo.usp_Concelho_Inserir
-    @Nome        NVARCHAR(60),
-    @IDConcelho  INT = NULL OUTPUT
+    @Nome       NVARCHAR(60),
+    @IDConcelho INT = NULL OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
 
     IF LTRIM(RTRIM(ISNULL(@Nome, N''))) = N''
-        THROW 50111, N'O nome do concelho e obrigatorio.', 1;
+        THROW 50201, N'O nome do concelho é obrigatório.', 1;
 
     IF EXISTS (SELECT 1 FROM Concelho WHERE Nome = @Nome)
-        THROW 50112, N'Ja existe um concelho com esse nome.', 1;
+        THROW 50202, N'Já existe um concelho com esse nome.', 1;
 
     INSERT INTO Concelho (Nome) VALUES (@Nome);
 
@@ -599,11 +346,10 @@ BEGIN
 
     SELECT   co.IDConcelho,
              co.Nome,
-             COUNT(p.IDPosto)                                   AS PostosInstalados,
-             ISNULL(SUM(CASE WHEN p.Ativo = 1 THEN 1 END), 0)   AS PostosAtivos,
+             COUNT(p.IDPosto)          AS PostosInstalados,
              CASE WHEN COUNT(p.IDPosto) = 0
                   THEN N'Pode ser eliminado'
-                  ELSE N'Em uso' END                            AS Situacao
+                  ELSE N'Em uso' END   AS Situacao
     FROM     Concelho co
              LEFT JOIN Posto p ON p.IDConcelho = co.IDConcelho
     GROUP BY co.IDConcelho, co.Nome
@@ -620,11 +366,11 @@ BEGIN
     SET NOCOUNT ON;
 
     IF NOT EXISTS (SELECT 1 FROM Concelho WHERE IDConcelho = @IDConcelho)
-        THROW 50113, N'Concelho inexistente.', 1;
+        THROW 50203, N'Concelho inexistente.', 1;
 
     IF EXISTS (SELECT 1 FROM Concelho
                WHERE Nome = @Nome AND IDConcelho <> @IDConcelho)
-        THROW 50114, N'Ja existe outro concelho com esse nome.', 1;
+        THROW 50204, N'Já existe outro concelho com esse nome.', 1;
 
     UPDATE Concelho
     SET    Nome = @Nome
@@ -640,33 +386,198 @@ BEGIN
     SET NOCOUNT ON;
 
     IF NOT EXISTS (SELECT 1 FROM Concelho WHERE IDConcelho = @IDConcelho)
-        THROW 50115, N'Concelho inexistente.', 1;
+        THROW 50205, N'Concelho inexistente.', 1;
 
-    DECLARE @Postos INT =
-        (SELECT COUNT(*) FROM Posto WHERE IDConcelho = @IDConcelho);
-
-    IF @Postos > 0
-    BEGIN
-        DECLARE @Msg NVARCHAR(300) =
-            N'Nao e possivel eliminar: existem ' + CAST(@Postos AS NVARCHAR(10))
-            + N' postos instalados neste concelho.';
-        THROW 50116, @Msg, 1;
-    END
+    IF EXISTS (SELECT 1 FROM Posto WHERE IDConcelho = @IDConcelho)
+        THROW 50206, N'Não é possível eliminar: há postos instalados neste concelho.', 1;
 
     DELETE FROM Concelho WHERE IDConcelho = @IDConcelho;
 END
 GO
 
+
 /* ############################################################################
-   PARTE 3 — FUNÇÕES
+   2C — TARIFÁRIO   ·   remoção lógica
+   ############################################################################
+   É a mais rica das três, por duas razões:
+
+   1. Mexe em DUAS tabelas ao mesmo tempo (Tarifario + TarifarioPreco), o que
+      obriga a uma TRANSAÇÃO: ou entram as duas, ou não entra nenhuma. Um
+      tarifário sem preço não serve para nada.
+
+   2. O preço não se escreve por cima do antigo. Fecha-se a vigência atual e
+      abre-se outra — é a regra 3.2, e é o que permite explicar uma fatura de
+      março com o preço de março.
    ############################################################################ */
 
+CREATE PROCEDURE dbo.usp_Tarifario_Inserir
+    @Nome         NVARCHAR(40),
+    @PrecoKwh     DECIMAL(8,4),
+    @TaxaAtivacao DECIMAL(8,2) = 0,        -- valor por omissão
+    @DataInicio   DATE         = NULL,     -- NULL = a partir de hoje
+    @IDTarifario  INT          = NULL OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;      -- se algo falhar, a transação é desfeita sozinha
+
+    IF LTRIM(RTRIM(ISNULL(@Nome, N''))) = N''
+        THROW 50301, N'O nome do tarifário é obrigatório.', 1;
+
+    IF EXISTS (SELECT 1 FROM Tarifario WHERE Nome = @Nome)
+        THROW 50302, N'Já existe um tarifário com esse nome.', 1;
+
+    IF @PrecoKwh IS NULL OR @PrecoKwh <= 0
+        THROW 50303, N'O preço por kWh tem de ser maior do que zero.', 1;
+
+    IF @DataInicio IS NULL
+        SET @DataInicio = CAST(GETDATE() AS DATE);
+
+    BEGIN TRANSACTION;
+
+        INSERT INTO Tarifario (Nome, Comercializado)
+        VALUES (@Nome, 1);
+
+        SET @IDTarifario = SCOPE_IDENTITY();
+
+        INSERT INTO TarifarioPreco (IDTarifario, DataInicio, DataFim, PrecoKwh, TaxaAtivacao)
+        VALUES (@IDTarifario, @DataInicio, NULL, @PrecoKwh, @TaxaAtivacao);
+        -- o trigger de sincronização preenche a cópia sozinho, aqui
+
+    COMMIT TRANSACTION;
+END
+GO
+
+
+/* Os dois parâmetros são opcionais, e o padrão é sempre o mesmo:
+   "ou não me disseste nada — e passam todos — ou disseste, e passa só esse". */
+CREATE PROCEDURE dbo.usp_Tarifario_Listar
+    @IDTarifario INT = NULL,
+    @SoAtivos    BIT = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT   t.IDTarifario,
+             t.Nome,
+             CASE t.Comercializado WHEN 1 THEN N'Sim' ELSE N'Não' END AS AindaSeVende,
+             t.PrecoKwhAtual,
+             t.TaxaAtivacaoAtual,
+             COUNT(c.IDCarregamento) AS Carregamentos
+    FROM     Tarifario t
+             LEFT JOIN Carregamento c ON c.IDTarifario = t.IDTarifario
+    WHERE    (@IDTarifario IS NULL OR t.IDTarifario = @IDTarifario)
+      AND    (@SoAtivos = 0        OR t.Comercializado = 1)
+    GROUP BY t.IDTarifario, t.Nome, t.Comercializado,
+             t.PrecoKwhAtual, t.TaxaAtivacaoAtual
+    ORDER BY t.Nome;
+END
+GO
+
+
+CREATE PROCEDURE dbo.usp_Tarifario_Atualizar
+    @IDTarifario  INT,
+    @NovoNome     NVARCHAR(40) = NULL,     -- NULL = não mexer no nome
+    @NovoPrecoKwh DECIMAL(8,4) = NULL,     -- NULL = não mexer no preço
+    @NovaTaxa     DECIMAL(8,2) = NULL,
+    @DataInicio   DATE         = NULL      -- quando o preço novo entra em vigor
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM Tarifario WHERE IDTarifario = @IDTarifario)
+        THROW 50304, N'Tarifário inexistente.', 1;
+
+    IF @NovoNome IS NOT NULL
+       AND EXISTS (SELECT 1 FROM Tarifario
+                   WHERE Nome = @NovoNome AND IDTarifario <> @IDTarifario)
+        THROW 50305, N'Já existe outro tarifário com esse nome.', 1;
+
+    IF @DataInicio IS NULL
+        SET @DataInicio = CAST(GETDATE() AS DATE);
+
+    /* A vigência nova tem de começar DEPOIS da que está aberta. Senão, ao
+       fechar a antiga com DataInicio - 1, ela ficava com um fim anterior ao
+       próprio início — e a restrição CHK_TarifPreco_Datas recusava. */
+    IF @NovoPrecoKwh IS NOT NULL
+       AND EXISTS (SELECT 1 FROM TarifarioPreco
+                   WHERE IDTarifario = @IDTarifario
+                     AND DataFim IS NULL
+                     AND DataInicio >= @DataInicio)
+        THROW 50306, N'O preço novo tem de começar depois do início da vigência atual.', 1;
+
+    BEGIN TRANSACTION;
+
+        IF @NovoNome IS NOT NULL
+            UPDATE Tarifario SET Nome = @NovoNome WHERE IDTarifario = @IDTarifario;
+
+        IF @NovoPrecoKwh IS NOT NULL
+        BEGIN
+            -- 1) fecha a vigência que estava aberta, no dia anterior à nova
+            UPDATE TarifarioPreco
+            SET    DataFim = DATEADD(DAY, -1, @DataInicio)
+            WHERE  IDTarifario = @IDTarifario AND DataFim IS NULL;
+
+            -- 2) abre a nova (o trigger sincroniza a cópia)
+            INSERT INTO TarifarioPreco (IDTarifario, DataInicio, DataFim, PrecoKwh, TaxaAtivacao)
+            VALUES (@IDTarifario, @DataInicio, NULL, @NovoPrecoKwh, ISNULL(@NovaTaxa, 0));
+        END
+
+    COMMIT TRANSACTION;
+END
+GO
+
+
+/* D — o "delete" que não apaga nada.
+   Regra 3.8. Um tarifário com carregamentos antigos não pode desaparecer: as
+   faturas passadas deixavam de fazer sentido. Deixa de se vender, e o
+   histórico fica intacto. */
+CREATE PROCEDURE dbo.usp_Tarifario_Descontinuar
+    @IDTarifario INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM Tarifario WHERE IDTarifario = @IDTarifario)
+        THROW 50307, N'Tarifário inexistente.', 1;
+
+    DECLARE @Hoje DATE = CAST(GETDATE() AS DATE);
+
+    BEGIN TRANSACTION;
+
+        UPDATE Tarifario
+        SET    Comercializado = 0
+        WHERE  IDTarifario = @IDTarifario;
+
+        /* Fecha o preço em vigor: deixou de haver preço a praticar.
+           O CASE trata o caso do preço agendado para o futuro, que ainda nem
+           começou — fecha no próprio dia de início, porque nada pode acabar
+           antes de começar. */
+        UPDATE TarifarioPreco
+        SET    DataFim = CASE WHEN DataInicio > @Hoje THEN DataInicio ELSE @Hoje END
+        WHERE  IDTarifario = @IDTarifario AND DataFim IS NULL;
+
+    COMMIT TRANSACTION;
+END
+GO
+
+
+/* ############################################################################
+   PARTE 3 — FUNÇÕES
+   ############################################################################
+   Uma de cada tipo:
+     ESCALAR      devolve UM valor.    Usa-se onde caberia uma coluna.
+     DE TABELA    devolve LINHAS.      Usa-se no FROM, como se fosse tabela.
+   ############################################################################ */
+
+
 /* ----------------------------------------------------------------------------
-   FUNÇÃO ESCALAR — devolve UM valor
-   O preço que estava em vigor numa data qualquer.
+   ESCALAR — o preço que estava em vigor numa data qualquer.
 
    É isto que a cópia dentro do Tarifario NÃO consegue responder: ela só sabe
-   o preço de hoje. Para explicar uma fatura de fevereiro é preciso ir à
+   o preço de hoje. Para explicar uma fatura de março é preciso ir à
    TarifarioPreco — e é por isso que as duas coexistem.
    ---------------------------------------------------------------------------- */
 CREATE FUNCTION dbo.fn_PrecoEmVigor (@IDTarifario INT, @Data DATE)
@@ -679,18 +590,22 @@ BEGIN
     FROM   TarifarioPreco tp
     WHERE  tp.IDTarifario = @IDTarifario
       AND  @Data >= tp.DataInicio
+      /* O OR é obrigatório: DataFim a NULL quer dizer "ainda em vigor", e
+         qualquer comparação com NULL dá desconhecido, nunca verdadeiro. */
       AND (@Data <= tp.DataFim OR tp.DataFim IS NULL);
 
-    RETURN @Preco;      -- toda a função tem de terminar num RETURN
+    RETURN @Preco;      -- NULL se nesse dia não havia preço em vigor
 END
 GO
 
 
 /* ----------------------------------------------------------------------------
-   FUNÇÃO DE TABELA — devolve LINHAS
-   Estatísticas por posto. Usa-se dentro de um FROM, como se fosse uma tabela.
+   DE TABELA — estatísticas por posto.   @IDPosto NULL → todos.
 
-   @IDPosto NULL → todos os postos.
+   Dois pontos que se repetem dos relatórios da Parte C:
+     · os filtros do carregamento estão no ON, não no WHERE — no WHERE
+       anulavam o LEFT JOIN e os postos sem carregamentos desapareciam
+     · COUNT(coluna) e não COUNT(*), que contaria a linha vazia como 1
    ---------------------------------------------------------------------------- */
 CREATE FUNCTION dbo.fn_EstatisticasPosto (@IDPosto INT)
 RETURNS TABLE
@@ -700,49 +615,46 @@ RETURN
            p.Codigo,
            p.NomePosto,
            p.PotenciaKw,
-           COUNT(c.IDCarregamento)                      AS Carregamentos,
-           SUM(c.EnergiaKwh)                            AS EnergiaTotalKwh,
-           CAST(AVG(c.CustoTotal) AS DECIMAL(9,2))      AS CustoMedio,
-           CAST(SUM(c.CustoTotal) AS DECIMAL(9,2))      AS ReceitaTotal,
-           /* Potência média realmente entregue: energia a dividir pelo tempo.
-              Comparada com a PotenciaKw do posto, mostra o quanto ele está a
-              ser aproveitado — e é a base do Alerta da Parte E. */
-           CAST(AVG(c.EnergiaKwh /
-                NULLIF(DATEDIFF(SECOND, c.DataHoraInicio, c.DataHoraFim) / 3600.0, 0))
-                AS DECIMAL(8,2))                        AS PotenciaMediaKw
+           COUNT(c.IDCarregamento)                        AS Carregamentos,
+           ISNULL(SUM(c.EnergiaKwh), 0)                   AS EnergiaTotalKwh,
+           CAST(ISNULL(AVG(c.CustoTotal), 0) AS DECIMAL(9,2)) AS CustoMedio,
+           CAST(ISNULL(SUM(c.CustoTotal), 0) AS DECIMAL(9,2)) AS ReceitaTotal
     FROM   Posto p
-           /* LEFT JOIN: os postos sem carregamentos aparecem com 0 e NULL em
-              vez de desaparecerem da estatística. */
            LEFT JOIN PostoConector pc ON pc.IDPosto        = p.IDPosto
            LEFT JOIN Carregamento  c  ON c.IDPostoConector = pc.IDPostoConector
-                                     AND c.Estado IN ('Terminado','Faturado')
-                                     AND c.DataHoraFim IS NOT NULL
+                                     AND c.Estado IN ('Terminado', 'Faturado')
     WHERE  @IDPosto IS NULL OR p.IDPosto = @IDPosto
     GROUP BY p.IDPosto, p.Codigo, p.NomePosto, p.PotenciaKw;
 GO
 
 
 /* ############################################################################
-   DEMONSTRAÇÃO
+   PARTE 4 — DEMONSTRAÇÃO
+   ############################################################################
+   Cada bloco mostra uma coisa só. Os que testam erros usam TRY/CATCH para o
+   script não parar — é aqui que o TRY/CATCH faz sentido: em quem CHAMA, para
+   apanhar o erro, e não dentro da procedure.
    ############################################################################ */
 
-PRINT N'--- READ: todos os tarifários (a cópia do preço já está sincronizada) ---';
+PRINT N'';
+PRINT N'=== CRUD DO TARIFÁRIO (remoção lógica) ===';
+
+PRINT N'--- Estado inicial ---';
 EXEC dbo.usp_Tarifario_Listar;
 GO
 
-PRINT N'--- CREATE: um tarifário novo ---';
+PRINT N'--- C: criar um tarifário (cria também a 1a vigência de preço) ---';
 DECLARE @NovoID INT;
 EXEC dbo.usp_Tarifario_Inserir
-        @Nome        = N'Fim de Semana',
-        @PrecoKwh    = 0.2100,
-        @DataInicio  = '2026-08-01',
-        @IDTarifario = @NovoID OUTPUT;
+     @Nome = N'Fim de Semana', @PrecoKwh = 0.1900, @TaxaAtivacao = 0.30,
+     @DataInicio = '2026-08-01', @IDTarifario = @NovoID OUTPUT;
 PRINT N'Criado com o ID ' + CAST(@NovoID AS VARCHAR(10));
 GO
 
-PRINT N'--- UPDATE: subir o preço (fecha a vigência antiga, abre a nova) ---';
+PRINT N'--- U: subir o preço (fecha a vigência antiga, abre a nova) ---';
 DECLARE @ID INT = (SELECT IDTarifario FROM Tarifario WHERE Nome = N'Fim de Semana');
-EXEC dbo.usp_Tarifario_Atualizar @IDTarifario = @ID, @NovoPrecoKwh = 0.2400, @DataInicio = '2026-09-01';
+EXEC dbo.usp_Tarifario_Atualizar
+     @IDTarifario = @ID, @NovoPrecoKwh = 0.2400, @DataInicio = '2026-09-01';
 GO
 
 PRINT N'--- O histórico de preços que ficou, e a cópia sincronizada ---';
@@ -754,67 +666,35 @@ WHERE  t.Nome = N'Fim de Semana'
 ORDER BY p.DataInicio;
 GO
 
-PRINT N'--- DELETE lógico ---';
+PRINT N'--- D: descontinuar. Nao apaga: marca como nao comercializado ---';
 DECLARE @ID INT = (SELECT IDTarifario FROM Tarifario WHERE Nome = N'Fim de Semana');
 EXEC dbo.usp_Tarifario_Descontinuar @IDTarifario = @ID;
+EXEC dbo.usp_Tarifario_Listar @IDTarifario = @ID;
 GO
 
 PRINT N'--- Erro tratado: nome repetido ---';
 BEGIN TRY
-    DECLARE @X INT;
-    EXEC dbo.usp_Tarifario_Inserir @Nome = N'Normal', @PrecoKwh = 0.30, @IDTarifario = @X OUTPUT;
+    EXEC dbo.usp_Tarifario_Inserir @Nome = N'Normal', @PrecoKwh = 0.30;
 END TRY
 BEGIN CATCH
     PRINT N'Erro apanhado: ' + ERROR_MESSAGE();
 END CATCH
 GO
 
-PRINT N'--- FUNÇÃO ESCALAR: o preço do Normal em duas datas diferentes ---';
-SELECT dbo.fn_PrecoEmVigor(1, '2026-03-15') AS PrecoEmMarco,
-       dbo.fn_PrecoEmVigor(1, '2026-08-15') AS PrecoEmAgosto;
-GO
-
-PRINT N'--- FUNÇÃO DE TABELA: estatísticas de todos os postos ---';
-SELECT * FROM dbo.fn_EstatisticasPosto(NULL)
-ORDER BY Carregamentos DESC, Codigo;
-GO
-
-PRINT N'--- TRIGGER de histórico: uma mudança de estado gera a linha sozinha ---';
-DECLARE @C INT = (SELECT MIN(IDCarregamento) FROM Carregamento WHERE Estado = 'Terminado');
-DECLARE @Antes INT = (SELECT COUNT(*) FROM CarregamentoHistorico WHERE IDCarregamento = @C);
-
-UPDATE Carregamento SET CustoTotal = CustoTotal WHERE IDCarregamento = @C;   -- não muda o estado
-DECLARE @Meio INT = (SELECT COUNT(*) FROM CarregamentoHistorico WHERE IDCarregamento = @C);
-
-PRINT N'Depois de um UPDATE que NAO muda o estado: ' + CAST(@Antes AS VARCHAR) + N' -> ' + CAST(@Meio AS VARCHAR) + N' (igual)';
-GO
-
-
-/* ############################################################################
-   DEMONSTRAÇÃO — CRUD do TipoConector e do Concelho
-   ############################################################################
-   O par de chamadas que interessa mostrar: uma eliminação que passa e outra
-   que é travada. É esse contraste que prova que a verificação existe.
-   ############################################################################ */
 
 PRINT N'';
-PRINT N'=== CRUD TIPOCONECTOR ===';
+PRINT N'=== CRUD DO TIPO DE CONECTOR (remoção física) ===';
 
 PRINT N'--- Estado inicial ---';
 EXEC dbo.usp_TipoConector_Listar;
 GO
 
-PRINT N'--- C: inserir um tipo novo ---';
+PRINT N'--- C, U e D sobre um tipo novo: ninguem o usa, por isso sai ---';
 DECLARE @IDNovo INT;
 EXEC dbo.usp_TipoConector_Inserir @Designacao = N'Tesla NACS', @IDTipoConector = @IDNovo OUTPUT;
-PRINT N'Criado com o ID ' + CAST(@IDNovo AS VARCHAR);
-
-PRINT N'--- U: mudar-lhe a designacao ---';
 EXEC dbo.usp_TipoConector_Atualizar @IDTipoConector = @IDNovo, @Designacao = N'NACS';
-
-PRINT N'--- D: eliminar. Ninguem o usa, por isso sai ---';
-EXEC dbo.usp_TipoConector_Eliminar @IDTipoConector = @IDNovo;
-PRINT N'Eliminado.';
+EXEC dbo.usp_TipoConector_Eliminar  @IDTipoConector = @IDNovo;
+PRINT N'Inserido, alterado e eliminado.';
 GO
 
 PRINT N'--- D: tentar eliminar um que ESTA em uso ---';
@@ -827,42 +707,57 @@ BEGIN CATCH
 END CATCH
 GO
 
-PRINT N'--- Erro tratado: designacao repetida ---';
-BEGIN TRY
-    /* usa uma designacao que EXISTE mesmo na tabela, senao o teste nao testa nada */
-    EXEC dbo.usp_TipoConector_Inserir @Designacao = N'CCS2';
-END TRY
-BEGIN CATCH
-    PRINT N'Erro apanhado: ' + ERROR_MESSAGE();
-END CATCH
-GO
-
 
 PRINT N'';
-PRINT N'=== CRUD CONCELHO ===';
+PRINT N'=== CRUD DO CONCELHO (remoção física) ===';
 
 PRINT N'--- Estado inicial: repara em Coimbra, com zero postos ---';
 EXEC dbo.usp_Concelho_Listar;
 GO
 
-PRINT N'--- C + U + D sobre um concelho novo ---';
+PRINT N'--- C, U e D sobre um concelho novo ---';
 DECLARE @IDCon INT;
-EXEC dbo.usp_Concelho_Inserir @Nome = N'Vila Verde', @IDConcelho = @IDCon OUTPUT;
+EXEC dbo.usp_Concelho_Inserir   @Nome = N'Vila Verde', @IDConcelho = @IDCon OUTPUT;
 EXEC dbo.usp_Concelho_Atualizar @IDConcelho = @IDCon, @Nome = N'Vila Verde (Braga)';
 EXEC dbo.usp_Concelho_Eliminar  @IDConcelho = @IDCon;
-PRINT N'Inserido, alterado e eliminado sem problema: nao tinha postos.';
+PRINT N'Inserido, alterado e eliminado: nao tinha postos.';
 GO
 
 PRINT N'--- D: tentar eliminar um concelho COM postos ---';
 BEGIN TRY
-    DECLARE @ConComPostos INT = (SELECT TOP 1 IDConcelho FROM Posto);
-    EXEC dbo.usp_Concelho_Eliminar @IDConcelho = @ConComPostos;
+    DECLARE @ComPostos INT = (SELECT TOP 1 IDConcelho FROM Posto);
+    EXEC dbo.usp_Concelho_Eliminar @IDConcelho = @ComPostos;
 END TRY
 BEGIN CATCH
     PRINT N'Travado como devia: ' + ERROR_MESSAGE();
 END CATCH
 GO
 
-PRINT N'--- Estado final: igual ao inicial. A demonstracao nao deixa lixo ---';
-EXEC dbo.usp_Concelho_Listar;
+
+PRINT N'';
+PRINT N'=== FUNÇÕES ===';
+
+PRINT N'--- Escalar: o preco do tarifario 1 em duas datas diferentes ---';
+SELECT dbo.fn_PrecoEmVigor(1, '2026-03-15') AS PrecoEmMarco,
+       dbo.fn_PrecoEmVigor(1, '2026-08-15') AS PrecoEmAgosto;
+GO
+
+PRINT N'--- De tabela: estatisticas de todos os postos ---';
+SELECT * FROM dbo.fn_EstatisticasPosto(NULL)
+ORDER BY Carregamentos DESC, Codigo;
+GO
+
+
+PRINT N'';
+PRINT N'=== TRIGGER DE HISTÓRICO ===';
+
+PRINT N'--- Um UPDATE que NAO muda o estado nao deve escrever no historico ---';
+DECLARE @C INT = (SELECT MIN(IDCarregamento) FROM Carregamento WHERE Estado = 'Terminado');
+DECLARE @Antes INT = (SELECT COUNT(*) FROM CarregamentoHistorico WHERE IDCarregamento = @C);
+
+UPDATE Carregamento SET CustoTotal = CustoTotal WHERE IDCarregamento = @C;
+
+DECLARE @Depois INT = (SELECT COUNT(*) FROM CarregamentoHistorico WHERE IDCarregamento = @C);
+PRINT N'Linhas de historico: ' + CAST(@Antes AS VARCHAR) + N' -> ' + CAST(@Depois AS VARCHAR)
+    + N' (tem de ser igual)';
 GO
