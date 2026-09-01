@@ -13,7 +13,7 @@ const caminhoCarregamentos = path.join(import.meta.dirname, '../../data/carregam
 
 export function listarCarregamentos() {                                                         // lista todos os carregamentos do repositório
   if (!existsSync(caminhoCarregamentos)) return [];                                             //verifica se o arquivo de carregamentos existe; se não existir, retorna um array vazio
-  const conteudo = readFileSync(caminhoCarregamentos, 'utf-8');                                 //verifica se o arquivo de carregamentos existe; se não existir, retorna um array vazio
+  const conteudo = readFileSync(caminhoCarregamentos, 'utf-8');                                 //lê o conteúdo do ficheiro como texto
   if (conteudo.trim() === '') return [];                                                        //verifica se o conteúdo do arquivo está vazio; se estiver, retorna um array vazio
   return JSON.parse(conteudo);                                                                  //converte a string JSON em um array de objetos e retorna esse array
 }
@@ -155,6 +155,6 @@ export function removerCarregamento(id) {
 //  AUXILIAR PRIVADA  (gravação no ficheiro)
 //======================================================
 
-function gravarCarregamentos(carregamentos) {                                                   //converte o array de objetos em uma string JSON formatada e grava no arquivo de carregamentos
-  writeFileSync(caminhoCarregamentos, JSON.stringify(carregamentos, null, 2), 'utf-8');         //converte o array de objetos em uma string JSON formatada e grava no arquivo de carregamentos
+function gravarCarregamentos(carregamentos) {
+  writeFileSync(caminhoCarregamentos, JSON.stringify(carregamentos, null, 2), 'utf-8');         //converte o array em texto JSON e grava no ficheiro
 }

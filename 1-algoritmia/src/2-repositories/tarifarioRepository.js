@@ -53,7 +53,7 @@ export function removerTarifario(nome) {
    let emUso = false;                                                                     // percorre todos os carregamentos para verificar se algum deles está usando o tarifário que se deseja remover
    for (let i = 0; i < carregamentos.length; i++) {                                       // percorre todos os carregamentos
      if (carregamentos[i].tarifario.toLowerCase() === nome.toLowerCase()) {               // compara o nome do tarifário do carregamento com o nome do tarifário que se deseja remover, ignorando maiúsculas/minúsculas
-       emUso = true;                                                                      // se encontrar algum carregamento que usa o tarifário, define emUso como true e interrompe o loop
+       emUso = true;                                                                      // encontrou um carregamento que usa este tarifário
      }
    }
    if (emUso) {                                                                           // se algum carregamento está usando o tarifário, não permite a remoção e retorna false

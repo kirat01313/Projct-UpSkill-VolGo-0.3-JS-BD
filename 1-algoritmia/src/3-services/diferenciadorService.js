@@ -1,27 +1,19 @@
 /*
-  REQUISITO DIFERENCIADOR  (Fred)
-  ===============================
+  REQUISITO DIFERENCIADOR — Receita por concelho   (Fred)
 
-  As funcionalidades extra, fora do que o enunciado obriga.
-  Ficam num ficheiro próprio para serem fáceis de identificar.
+  Responde à pergunta "em que concelhos é que o negócio rende mais?".
 
-  ------------------------------------------------------------
-  1) receitaPorConcelho()
-  ------------------------------------------------------------
-  Cruza CARREGAMENTOS com POSTOS para responder à pergunta:
-  "em que concelhos é que o negócio rende mais?"
+  É o único sítio do projeto que faz um LOOKUP entre duas entidades: o
+  carregamento só guarda o CÓDIGO do posto, e o concelho está guardado dentro
+  do posto — logo é preciso ir lá buscá-lo. (Na Fase 2 isto passa a ser um
+  JOIN com GROUP BY.)
 
-  É o único sítio do projeto que faz um LOOKUP entre entidades:
-  o carregamento só guarda o CÓDIGO do posto, e o concelho está
-  guardado dentro do posto — logo é preciso ir lá buscá-lo.
-
-  (Na Fase 2 isto vira um JOIN + GROUP BY.)
-
-  ------------------------------------------------------------
-  2) relatorioPorCobrar(diasLimite)   <- por escrever
-  ------------------------------------------------------------
-  Carregamentos 'terminado' que ainda não passaram a 'faturado'
-  há mais de X dias, com o total em euros pendente.
+  Duas decisões deliberadas:
+    · contam-se só os 'faturado' — um 'terminado' ainda não foi cobrado,
+      logo ainda não é receita;
+    · todos os concelhos aparecem, mesmo os que deram zero, porque um
+      concelho a zero é precisamente a informação de onde ainda não há
+      negócio.
 */
 
 import { listarCarregamentos } from '../2-repositories/carregamentoRepository.js'; // devolve todos os carregamentos
