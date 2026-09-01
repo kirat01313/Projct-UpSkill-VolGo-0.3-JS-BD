@@ -18,7 +18,7 @@ Continua a aplicação de consola da Fase 1.
 ├── guias/                        material de estudo, para ler antes de defender
 │   ├── 00-comeca-aqui.md               o modelo do zero, sem assumir nada
 │   ├── 01-as-quatro-alteracoes.md      o que mudou depois da conversa com a professora
-│   ├── 02-parte-B-procedures-funcoes-triggers.md
+│   ├── 02-procedures-funcoes-triggers.md   pedido oral da docente, fora do PDF
 │   ├── 03-parte-C-relatorios.md
 │   ├── 04-parte-D-relatorio-proposto.md
 │   ├── 05-parte-E-alerta.md
@@ -82,14 +82,17 @@ sqlcmd -S "localhost\SQLEXPRESS" -E -C -i "01-criar-bd.sql"
 
 | Ponto do enunciado | Onde |
 |---|---|
-| Modelo relacional | `VoltGo-ModeloRelacional.drawio` / `.png` |
 | Dicionário de dados | `VoltGo-DicionarioDados.xlsx` |
-| Script de criação | `01-criar-bd.sql` |
-| Dados de teste | `02-dados-teste.sql` |
-| **B** — procedures, funções, triggers | `03-...sql` + `guias/02-...md` |
+| **A** — modelo relacional | `VoltGo-ModeloRelacional.drawio` / `.png` + `guias/00-...md` |
+| **B** — implementação SQL | `01-criar-bd.sql` e `02-dados-teste.sql` |
 | **C** — 7 relatórios obrigatórios | `04-...sql` + `guias/03-...md` |
 | **D** — relatório estratégico proposto | `05-...sql` + `guias/04-...md` |
 | **E** — funcionalidade nova | `06-...sql` + `guias/05-...md` |
+
+O enunciado escrito **não pede** procedures, funções nem triggers. O
+`03-procedures-funcoes-triggers.sql` responde a um pedido feito **oralmente**
+pela docente: CRUD com stored procedures em três tabelas, uma função de
+estatística e um trigger com lógica automática.
 
 ---
 
@@ -98,7 +101,7 @@ sqlcmd -S "localhost\SQLEXPRESS" -E -C -i "01-criar-bd.sql"
 ```
 17 tabelas · 99 colunas · 20 ligações
 3 triggers de negócio + 1 trigger de deteção
-4 stored procedures (CRUD sobre o Tarifário)
+12 stored procedures (CRUD em 3 tabelas: Tarifário, TipoConector, Concelho)
 2 funções (uma escalar, uma tabular)
 ```
 

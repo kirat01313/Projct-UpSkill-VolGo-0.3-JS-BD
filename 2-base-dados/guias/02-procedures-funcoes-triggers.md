@@ -1,7 +1,11 @@
-# Parte B — Procedimentos, Funções e Triggers
+# Procedimentos, Funções e Triggers
 
 > Guia de estudo. Explica **o que é**, **porque existe** e **o que dizer à professora**.
 > O código está em `Entregaveis Finais/03-procedures-funcoes-triggers.sql`, todo comentado.
+
+> **Atenção:** isto **não é a Parte B** do enunciado. A Parte B escrita é a
+> criação do esquema — o `01-criar-bd.sql`. Procedures, funções e triggers
+> foram pedidos **oralmente** pela docente, por cima do PDF.
 
 ---
 
@@ -33,13 +37,12 @@ Imagina a base de dados como uma cozinha.
 3 TRIGGERS
   TR_Carregamento_Historico          escreve o histórico do carregamento
   TR_Ocorrencia_Historico            escreve o histórico da ocorrência
-  TR_TarifarioPreco_SincronizaAtual  mantém o preço do Tarifário sincronizado  <-- NOVO
+  TR_TarifarioPreco_SincronizaAtual  mantém o preço do Tarifário sincronizado
 
-4 PROCEDURES  (o CRUD que a professora pediu, sobre o Tarifário)
-  usp_Tarifario_Inserir              C — Create
-  usp_Tarifario_Listar               R — Read
-  usp_Tarifario_Atualizar            U — Update
-  usp_Tarifario_Descontinuar         D — Delete (lógico, não apaga nada)
+12 PROCEDURES  — CRUD completo em TRÊS tabelas
+  usp_Tarifario_*      Inserir / Listar / Atualizar / Descontinuar
+  usp_TipoConector_*   Inserir / Listar / Atualizar / Eliminar
+  usp_Concelho_*       Inserir / Listar / Atualizar / Eliminar
 
 2 FUNÇÕES
   fn_PrecoEmVigor                    escalar        — devolve um número
@@ -78,6 +81,77 @@ Não apaga linha nenhuma. Os carregamentos antigos continuam a apontar para o ta
 > Porque um carregamento de março de 2026 foi cobrado a um preço. Se apagares o tarifário, esse carregamento fica órfão e a fatura deixa de ser explicável. Apagar destrói o passado.
 
 ---
+
+---
+
+## 3b. As outras duas tabelas — TipoConector e Concelho
+
+A docente pediu CRUD em **três** tabelas. As outras duas são de propósito
+pequenas: id + nome, e mais nada. O objetivo é mostrar que se sabe escrever e
+explicar uma procedure, não inventar dificuldade.
+
+Mas há uma coisa que elas fazem e o Tarifário não faz.
+
+### As duas maneiras de apagar
+
+| Tabela | O "D" é... | Porquê |
+|---|---|---|
+| **Tarifário** | remoção **lógica** | há carregamentos antigos que foram cobrados a esse preço. Apagar deixava-os inexplicáveis. |
+| **TipoConector** | remoção **física**, travada pela FK | só sai se nenhuma tomada o usar |
+| **Concelho** | remoção **física**, travada pela FK | só sai se nenhum posto lá estiver instalado |
+
+### E a regra 3.8, que proíbe apagar?
+
+Vale a pena ler a frase toda:
+
+> *"Dados não devem ser fisicamente removidos **quando perdem validade
+> operacional**."*
+
+A condição está no fim. Um tarifário descontinuado **teve** validade
+operacional e perdeu-a — esse fica. Um tipo de conector inserido por engano,
+que nunca foi usado por nada, **nunca a teve** — apagá-lo é corrigir um erro,
+não destruir histórico.
+
+### Quem trava o DELETE não é o nosso código
+
+É a **chave estrangeira**. Se houver uma tomada a apontar para o tipo de
+conector, o SQL Server recusa apagar, escrevamos nós o que escrevermos.
+
+O que a procedure acrescenta é uma **mensagem que se percebe**:
+
+```
+Nao e possivel eliminar: existem 6 tomadas associadas a este tipo de conector.
+```
+
+em vez do erro cru sobre a restrição `FK_PostoConector_TipoConector`, que não
+diz nada a quem está a usar a aplicação.
+
+### O par de chamadas que faz o ponto na defesa
+
+```
+eliminar o "Type 1"    ->  ninguém o usa       ->  apaga
+eliminar o "Type 2"    ->  6 tomadas a usá-lo  ->  recusa, com explicação
+```
+
+Uma passa, a outra é travada. É esse contraste que prova que a verificação
+existe — mostrar só a que funciona não prova nada.
+
+O mesmo com os concelhos: **Coimbra** não tem postos e sai; **Braga** tem
+quatro e é travada.
+
+### Um detalhe pequeno que vale nota
+
+No `Listar`, a junção é **LEFT JOIN**:
+
+> Sem ele, um tipo de conector sem tomadas desaparecia da listagem —
+> precisamente aquele que se pode eliminar. Num ecrã de gestão, era o pior
+> resultado possível.
+
+E no `Atualizar`, a verificação de nome repetido exclui a própria linha:
+
+> Renomear um registo para o nome que ele já tem não pode ser tratado como
+> duplicado. É para isso que serve o `<> @ID` na condição.
+
 
 ## 4. As duas funções
 
@@ -186,6 +260,9 @@ Estes três triggers registam e sincronizam. Não recusam nada. O único que pod
 
 **"Porque é que o D do CRUD não apaga?"**
 Regra 3.8 do enunciado: remoção lógica. Além disso, apagar partiria as chaves estrangeiras dos carregamentos antigos.
+
+**"Porque é que num apagam e nos outros apagam?"**
+Porque a regra 3.8 proíbe remover dados que *perderam* validade operacional. Um tarifário descontinuado está nesse caso. Um tipo de conector que nada usa nunca a teve.
 
 **"Podiam ter feito isto sem procedure?"**
 Podíamos, escrevendo o SQL à mão de cada vez. A procedure garante que os passos são sempre os mesmos e que a transação existe sempre. É a diferença entre uma receita escrita e cozinhar de memória.

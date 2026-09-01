@@ -52,32 +52,35 @@ GO
    O valor em falta de cada fatura é o que foi faturado menos o que já entrou.
    Com pagamentos parciais, essa diferença pode não ser zero nem o total.
 
+   A SUBCONSULTA no FROM (o bloco entre parênteses a que chamámos 'fs') calcula
+   uma vez o valor faturado e o valor recebido de cada fatura. A partir daí, o
+   resto da consulta trata esses dois números como se fossem colunas normais.
+   Sem isto, o mesmo cálculo teria de ser repetido no SELECT, no WHERE e no
+   ORDER BY — e bastava enganar-se numa cópia para o resultado ficar errado.
+
    INNER JOIN e não LEFT: um cliente sem dívida não tem lugar num relatório de
    dívidas. Pela mesma razão os filtros vão no WHERE — não há linhas vazias a
    proteger.
    ############################################################################ */
 
-WITH FaturaSaldo AS (
-    SELECT f.IDFatura,
-           f.Numero,
-           f.IDClientePagador,
-           f.Metodo,
-           f.DataVencimento,
-           /* o valor faturado é a soma dos carregamentos que a fatura cobre */
-           ISNULL((SELECT SUM(c.CustoTotal) FROM Carregamento c
-                   WHERE c.IDFatura = f.IDFatura), 0)  AS ValorFaturado,
-           ISNULL((SELECT SUM(pg.Valor) FROM Pagamento pg
-                   WHERE pg.IDFatura = f.IDFatura), 0) AS ValorRecebido
-    FROM   Fatura f
-    WHERE  f.Estado <> 'Anulada'
-)
 SELECT   cl.Nome                                        AS EntidadePagadora,
          cl.TipoCliente,
          COUNT(*)                                       AS FaturasEmDivida,
          SUM(fs.ValorFaturado - fs.ValorRecebido)       AS TotalEmDivida,
          MAX(DATEDIFF(DAY, fs.DataVencimento, GETDATE())) AS DiasDaMaisAntiga,
          MIN(fs.DataVencimento)                         AS VencimentoMaisAntigo
-FROM     FaturaSaldo fs
+FROM     (SELECT f.IDFatura,
+                 f.Numero,
+                 f.IDClientePagador,
+                 f.Metodo,
+                 f.DataVencimento,
+                 /* o valor faturado é a soma dos carregamentos que a fatura cobre */
+                 ISNULL((SELECT SUM(c.CustoTotal) FROM Carregamento c
+                         WHERE c.IDFatura = f.IDFatura), 0)  AS ValorFaturado,
+                 ISNULL((SELECT SUM(pg.Valor) FROM Pagamento pg
+                         WHERE pg.IDFatura = f.IDFatura), 0) AS ValorRecebido
+          FROM   Fatura f
+          WHERE  f.Estado <> 'Anulada') AS fs
          INNER JOIN Cliente cl ON cl.IDCliente = fs.IDClientePagador
 WHERE    fs.ValorRecebido < fs.ValorFaturado      -- ainda falta receber
   AND    fs.DataVencimento < GETDATE()            -- e o prazo já passou
@@ -95,13 +98,6 @@ GO
    não existe nessa altura da execução.
    ############################################################################ */
 
-WITH FaturaSaldo AS (
-    SELECT f.IDFatura, f.DataVencimento,
-           ISNULL((SELECT SUM(c.CustoTotal) FROM Carregamento c WHERE c.IDFatura = f.IDFatura), 0)  AS ValorFaturado,
-           ISNULL((SELECT SUM(pg.Valor)     FROM Pagamento   pg WHERE pg.IDFatura = f.IDFatura), 0) AS ValorRecebido
-    FROM   Fatura f
-    WHERE  f.Estado <> 'Anulada'
-)
 SELECT   CASE
              WHEN DATEDIFF(DAY, DataVencimento, GETDATE()) <= 30 THEN N'1 - ate 30 dias'
              WHEN DATEDIFF(DAY, DataVencimento, GETDATE()) <= 60 THEN N'2 - 31 a 60 dias'
@@ -110,7 +106,11 @@ SELECT   CASE
          END                                     AS Escalao,
          COUNT(*)                                AS Faturas,
          SUM(ValorFaturado - ValorRecebido)      AS TotalEmDivida
-FROM     FaturaSaldo
+FROM     (SELECT f.IDFatura, f.DataVencimento,
+                 ISNULL((SELECT SUM(c.CustoTotal) FROM Carregamento c WHERE c.IDFatura = f.IDFatura), 0)  AS ValorFaturado,
+                 ISNULL((SELECT SUM(pg.Valor)     FROM Pagamento   pg WHERE pg.IDFatura = f.IDFatura), 0) AS ValorRecebido
+          FROM   Fatura f
+          WHERE  f.Estado <> 'Anulada') AS FaturaSaldo
 WHERE    ValorRecebido < ValorFaturado
   AND    DataVencimento < GETDATE()
 GROUP BY CASE

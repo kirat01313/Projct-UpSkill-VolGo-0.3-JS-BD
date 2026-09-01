@@ -21,7 +21,7 @@ Na pasta `2-base-dados`:
 guias/                                 material de estudo em português
   00-comeca-aqui.md                    o modelo explicado do zero
   01-as-quatro-alteracoes.md           o que mudou depois da conversa com a professora
-  02-parte-B-procedures-funcoes-triggers.md
+  02-procedures-funcoes-triggers.md
   03-parte-C-relatorios.md
   04-parte-D-relatorio-proposto.md
   05-parte-E-alerta.md
@@ -31,9 +31,9 @@ Entregaveis Finais/                    o que se entrega
   VoltGo-ModeloRelacional.drawio       diagrama final
   VoltGo-ModeloRelacional.png
   VoltGo-DicionarioDados.xlsx          dicionário final (6 folhas)
-  01-criar-bd.sql                      17 tabelas
-  02-dados-teste.sql                   dados de teste
-  03-procedures-funcoes-triggers.sql   PARTE B
+  01-criar-bd.sql                      PARTE B — 17 tabelas
+  02-dados-teste.sql                   PARTE B — dados de teste
+  03-procedures-funcoes-triggers.sql   pedido oral: CRUD, funções, triggers
   04-relatorios.sql                    PARTE C — os 7 relatórios obrigatórios
   05-relatorio-proposto.sql            PARTE D
   06-parte-e-alerta.sql                PARTE E — funcionalidade nova

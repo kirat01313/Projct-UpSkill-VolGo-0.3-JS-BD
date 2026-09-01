@@ -1,5 +1,5 @@
 /* ============================================================================
-   VoltGo — 01 — Criação da base de dados                          SQL Server
+   VoltGo — 01 — Criação da base de dados                            PARTE B
    ============================================================================
    Trabalho Prático de Bases de Dados · UpSkill/IPCA · Fred & Tarik
 
@@ -49,7 +49,7 @@ GO
 
 
 /* ############################################################################
-   1. CATÁLOGOS
+   1. TABELAS
    Listas de valores fixos. Não apontam para ninguém, por isso vêm primeiro.
    ############################################################################ */
 

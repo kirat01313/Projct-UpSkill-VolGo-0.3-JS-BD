@@ -54,7 +54,9 @@ em dívida   a soma dos pagamentos é menor  E  o vencimento já passou
 
 Porque ela teria de ser reescrita **todos os dias à meia-noite**. Uma fatura que hoje está em dia, amanhã está em dívida — sem que ninguém lhe tenha tocado. A dívida nasce apenas da **passagem do tempo**.
 
-> **A regra geral por trás disto:** não se guarda o que se pode calcular, sobretudo quando o valor muda sozinho.
+> **A regra geral por trás disto:** 
+>não se guarda o que se pode calcular, 
+>sobretudo quando o valor muda sozinho.
 > Guardar seria criar uma mentira com data de validade.
 
 ---

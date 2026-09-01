@@ -1,17 +1,32 @@
 /* ============================================================================
-   VoltGo — 03 — Procedimentos, funções e triggers                   PARTE B
+   VoltGo — 03 — Procedimentos, funções e triggers          REQUISITO ORAL
    ============================================================================
    Correr depois do 01 e do 02, e ANTES dos relatórios: o trigger de
    sincronização preenche o preço em vigor de cada tarifário, que o relatório 3
    mostra.
 
+   NOTA SOBRE O ENUNCIADO
+   Os pontos 4.1 a 4.5 do enunciado escrito não pedem procedimentos, funções
+   nem triggers. Este ficheiro responde a um pedido feito ORALMENTE pela
+   docente: CRUD com stored procedures em três tabelas, uma função de
+   estatística e um trigger com lógica automática.
+
    O QUE ESTÁ AQUI E PORQUÊ
 
-     PROCEDIMENTOS  CRUD completo do Tarifário.
-                    Escolhido por ser simples (3 colunas) mas não trivial: tem
-                    tabela filha e uma regra de negócio própria (não se apaga,
-                    descontinua-se). Dá para mostrar transação, tratamento de
-                    erro e remoção lógica num objeto só.
+     PROCEDIMENTOS  CRUD completo em TRÊS tabelas, escolhidas para mostrarem
+                    situações diferentes:
+
+                      Tarifário      remoção LÓGICA. Não se apaga: descontinua-se
+                                     e fecha-se a vigência de preço. Precisa de
+                                     transação, porque são duas tabelas.
+                      TipoConector   remoção FÍSICA travada pela chave
+                                     estrangeira: só sai se nenhuma tomada o usar.
+                      Concelho       o mesmo, travado pelos postos instalados.
+
+                    A regra 3.8 proíbe remover fisicamente dados "quando perdem
+                    validade operacional". Um tarifário descontinuado perdeu-a e
+                    fica; um tipo de conector inserido por engano, que nada usa,
+                    nunca a teve — esse pode sair.
 
      FUNÇÕES        Uma escalar (devolve um número) e uma de tabela (devolve
                     linhas), para cobrir os dois tipos.
@@ -44,6 +59,14 @@ DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Inserir;
 DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Listar;
 DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Atualizar;
 DROP PROCEDURE IF EXISTS dbo.usp_Tarifario_Descontinuar;
+DROP PROCEDURE IF EXISTS dbo.usp_TipoConector_Inserir;
+DROP PROCEDURE IF EXISTS dbo.usp_TipoConector_Listar;
+DROP PROCEDURE IF EXISTS dbo.usp_TipoConector_Atualizar;
+DROP PROCEDURE IF EXISTS dbo.usp_TipoConector_Eliminar;
+DROP PROCEDURE IF EXISTS dbo.usp_Concelho_Inserir;
+DROP PROCEDURE IF EXISTS dbo.usp_Concelho_Listar;
+DROP PROCEDURE IF EXISTS dbo.usp_Concelho_Atualizar;
+DROP PROCEDURE IF EXISTS dbo.usp_Concelho_Eliminar;
 DROP FUNCTION  IF EXISTS dbo.fn_EstatisticasPosto;
 DROP FUNCTION  IF EXISTS dbo.fn_PrecoEmVigor;
 GO
@@ -165,26 +188,26 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    /* Os tarifários afetados podem vir de qualquer uma das duas tabelas:
-       de inserted (criou/alterou) ou de deleted (apagou/alterou). */
-    ;WITH Afetados AS (
-        SELECT IDTarifario FROM inserted
-        UNION
-        SELECT IDTarifario FROM deleted
-    )
-    UPDATE t
-    SET    t.PrecoKwhAtual     = v.PrecoKwh,
-           t.TaxaAtivacaoAtual = v.TaxaAtivacao
-    FROM   Tarifario t
-           INNER JOIN Afetados a ON a.IDTarifario = t.IDTarifario
-           /* OUTER APPLY e não JOIN: se o tarifário ficar sem vigência aberta,
-              a cópia tem de ir a NULL em vez de ficar com o valor antigo. */
-           OUTER APPLY (
-               SELECT TOP 1 tp.PrecoKwh, tp.TaxaAtivacao
-               FROM   TarifarioPreco tp
-               WHERE  tp.IDTarifario = t.IDTarifario
-                 AND  tp.DataFim IS NULL          -- a vigência em vigor
-           ) v;
+    /* Cada coluna vai buscar o seu valor a uma SUBCONSULTA.
+
+       Uma subconsulta que não encontra nada devolve NULL — e é isso mesmo que
+       queremos: se o tarifário ficar sem vigência aberta, a cópia tem de ir a
+       NULL em vez de ficar com o valor antigo.
+
+       O WHERE limita a alteração aos tarifários afetados, que podem vir de
+       qualquer uma das duas tabelas do trigger: de 'inserted' (criou ou
+       alterou) ou de 'deleted' (apagou ou alterou). */
+    UPDATE Tarifario
+    SET    PrecoKwhAtual = (SELECT TOP 1 tp.PrecoKwh
+                            FROM   TarifarioPreco tp
+                            WHERE  tp.IDTarifario = Tarifario.IDTarifario
+                              AND  tp.DataFim IS NULL),      -- a vigência em vigor
+           TaxaAtivacaoAtual = (SELECT TOP 1 tp.TaxaAtivacao
+                                FROM   TarifarioPreco tp
+                                WHERE  tp.IDTarifario = Tarifario.IDTarifario
+                                  AND  tp.DataFim IS NULL)
+    WHERE  IDTarifario IN (SELECT IDTarifario FROM inserted)
+       OR  IDTarifario IN (SELECT IDTarifario FROM deleted);
 END
 GO
 
@@ -205,7 +228,7 @@ GO
 
 
 /* ############################################################################
-   PARTE 2 — CRUD DO TARIFÁRIO (procedimentos)
+   PARTE 2A — CRUD DO TARIFÁRIO  ·  remoção LÓGICA
    ############################################################################ */
 
 /* ----------------------------------------------------------------------------
@@ -421,6 +444,219 @@ END
 GO
 
 
+
+/* ############################################################################
+   PARTE 2B — CRUD DO TIPO DE CONECTOR  ·  remoção FÍSICA travada pela FK
+   ############################################################################
+   O Tarifário mostra a remoção lógica. Esta tabela mostra a outra metade da
+   história: quando é legítimo apagar mesmo, e o que impede o disparate.
+
+   A regra 3.8 proíbe remover dados "quando perdem validade operacional". Um
+   tipo de conector que nada usa nunca chegou a ter validade operacional — é um
+   engano de inserção, e corrigir um engano não é destruir histórico.
+
+   Quem decide se pode sair não é o nosso código: é a CHAVE ESTRANGEIRA. Se
+   houver uma tomada a apontar para o tipo, o SQL Server recusa o DELETE. O que
+   a procedure acrescenta é uma mensagem que se percebe, em vez do erro cru
+   sobre a restrição FK_PostoConector_TipoConector.
+   ############################################################################ */
+
+/* ----------------------------------------------------------------------------
+   C — CREATE
+   A coluna Designacao já tem UNIQUE. A verificação aqui não substitui a
+   restrição: serve para devolver uma frase legível em vez do erro 2627.
+   ---------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.usp_TipoConector_Inserir
+    @Designacao      NVARCHAR(40),
+    @IDTipoConector  INT = NULL OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF LTRIM(RTRIM(ISNULL(@Designacao, N''))) = N''
+        THROW 50101, N'A designacao do tipo de conector e obrigatoria.', 1;
+
+    IF EXISTS (SELECT 1 FROM TipoConector WHERE Designacao = @Designacao)
+        THROW 50102, N'Ja existe um tipo de conector com essa designacao.', 1;
+
+    INSERT INTO TipoConector (Designacao) VALUES (@Designacao);
+
+    SET @IDTipoConector = SCOPE_IDENTITY();   -- o id que o IDENTITY acabou de gerar
+END
+GO
+
+
+/* ----------------------------------------------------------------------------
+   R — READ
+   LEFT JOIN de propósito: um tipo de conector sem tomadas TEM de aparecer na
+   listagem — é precisamente o que se pode eliminar. Com INNER JOIN ele
+   desaparecia do ecrã de gestão.
+   ---------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.usp_TipoConector_Listar
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT   tc.IDTipoConector,
+             tc.Designacao,
+             COUNT(pc.IDPostoConector)  AS TomadasAssociadas,
+             CASE WHEN COUNT(pc.IDPostoConector) = 0
+                  THEN N'Pode ser eliminado'
+                  ELSE N'Em uso' END    AS Situacao
+    FROM     TipoConector tc
+             LEFT JOIN PostoConector pc ON pc.IDTipoConector = tc.IDTipoConector
+    GROUP BY tc.IDTipoConector, tc.Designacao
+    ORDER BY tc.Designacao;
+END
+GO
+
+
+/* ----------------------------------------------------------------------------
+   U — UPDATE
+   ---------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.usp_TipoConector_Atualizar
+    @IDTipoConector INT,
+    @Designacao     NVARCHAR(40)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM TipoConector WHERE IDTipoConector = @IDTipoConector)
+        THROW 50103, N'Tipo de conector inexistente.', 1;
+
+    /* o <> exclui a própria linha: renomear um registo para o nome que já tem
+       não pode ser tratado como duplicado */
+    IF EXISTS (SELECT 1 FROM TipoConector
+               WHERE Designacao = @Designacao AND IDTipoConector <> @IDTipoConector)
+        THROW 50104, N'Ja existe outro tipo de conector com essa designacao.', 1;
+
+    UPDATE TipoConector
+    SET    Designacao = @Designacao
+    WHERE  IDTipoConector = @IDTipoConector;
+END
+GO
+
+
+/* ----------------------------------------------------------------------------
+   D — DELETE (físico, verificado)
+   ---------------------------------------------------------------------------- */
+CREATE PROCEDURE dbo.usp_TipoConector_Eliminar
+    @IDTipoConector INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM TipoConector WHERE IDTipoConector = @IDTipoConector)
+        THROW 50105, N'Tipo de conector inexistente.', 1;
+
+    DECLARE @Tomadas INT =
+        (SELECT COUNT(*) FROM PostoConector WHERE IDTipoConector = @IDTipoConector);
+
+    IF @Tomadas > 0
+    BEGIN
+        DECLARE @Msg NVARCHAR(300) =
+            N'Nao e possivel eliminar: existem ' + CAST(@Tomadas AS NVARCHAR(10))
+            + N' tomadas associadas a este tipo de conector.';
+        THROW 50106, @Msg, 1;
+    END
+
+    DELETE FROM TipoConector WHERE IDTipoConector = @IDTipoConector;
+END
+GO
+
+
+/* ############################################################################
+   PARTE 2C — CRUD DO CONCELHO  ·  remoção FÍSICA travada pela FK
+   ############################################################################
+   Mesma estrutura da anterior. O que muda é a tabela que trava o DELETE: aqui
+   são os postos instalados no concelho.
+   ############################################################################ */
+
+CREATE PROCEDURE dbo.usp_Concelho_Inserir
+    @Nome        NVARCHAR(60),
+    @IDConcelho  INT = NULL OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF LTRIM(RTRIM(ISNULL(@Nome, N''))) = N''
+        THROW 50111, N'O nome do concelho e obrigatorio.', 1;
+
+    IF EXISTS (SELECT 1 FROM Concelho WHERE Nome = @Nome)
+        THROW 50112, N'Ja existe um concelho com esse nome.', 1;
+
+    INSERT INTO Concelho (Nome) VALUES (@Nome);
+
+    SET @IDConcelho = SCOPE_IDENTITY();
+END
+GO
+
+
+CREATE PROCEDURE dbo.usp_Concelho_Listar
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT   co.IDConcelho,
+             co.Nome,
+             COUNT(p.IDPosto)                                   AS PostosInstalados,
+             ISNULL(SUM(CASE WHEN p.Ativo = 1 THEN 1 END), 0)   AS PostosAtivos,
+             CASE WHEN COUNT(p.IDPosto) = 0
+                  THEN N'Pode ser eliminado'
+                  ELSE N'Em uso' END                            AS Situacao
+    FROM     Concelho co
+             LEFT JOIN Posto p ON p.IDConcelho = co.IDConcelho
+    GROUP BY co.IDConcelho, co.Nome
+    ORDER BY co.Nome;
+END
+GO
+
+
+CREATE PROCEDURE dbo.usp_Concelho_Atualizar
+    @IDConcelho INT,
+    @Nome       NVARCHAR(60)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM Concelho WHERE IDConcelho = @IDConcelho)
+        THROW 50113, N'Concelho inexistente.', 1;
+
+    IF EXISTS (SELECT 1 FROM Concelho
+               WHERE Nome = @Nome AND IDConcelho <> @IDConcelho)
+        THROW 50114, N'Ja existe outro concelho com esse nome.', 1;
+
+    UPDATE Concelho
+    SET    Nome = @Nome
+    WHERE  IDConcelho = @IDConcelho;
+END
+GO
+
+
+CREATE PROCEDURE dbo.usp_Concelho_Eliminar
+    @IDConcelho INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM Concelho WHERE IDConcelho = @IDConcelho)
+        THROW 50115, N'Concelho inexistente.', 1;
+
+    DECLARE @Postos INT =
+        (SELECT COUNT(*) FROM Posto WHERE IDConcelho = @IDConcelho);
+
+    IF @Postos > 0
+    BEGIN
+        DECLARE @Msg NVARCHAR(300) =
+            N'Nao e possivel eliminar: existem ' + CAST(@Postos AS NVARCHAR(10))
+            + N' postos instalados neste concelho.';
+        THROW 50116, @Msg, 1;
+    END
+
+    DELETE FROM Concelho WHERE IDConcelho = @IDConcelho;
+END
+GO
+
 /* ############################################################################
    PARTE 3 — FUNÇÕES
    ############################################################################ */
@@ -551,4 +787,82 @@ UPDATE Carregamento SET CustoTotal = CustoTotal WHERE IDCarregamento = @C;   -- 
 DECLARE @Meio INT = (SELECT COUNT(*) FROM CarregamentoHistorico WHERE IDCarregamento = @C);
 
 PRINT N'Depois de um UPDATE que NAO muda o estado: ' + CAST(@Antes AS VARCHAR) + N' -> ' + CAST(@Meio AS VARCHAR) + N' (igual)';
+GO
+
+
+/* ############################################################################
+   DEMONSTRAÇÃO — CRUD do TipoConector e do Concelho
+   ############################################################################
+   O par de chamadas que interessa mostrar: uma eliminação que passa e outra
+   que é travada. É esse contraste que prova que a verificação existe.
+   ############################################################################ */
+
+PRINT N'';
+PRINT N'=== CRUD TIPOCONECTOR ===';
+
+PRINT N'--- Estado inicial ---';
+EXEC dbo.usp_TipoConector_Listar;
+GO
+
+PRINT N'--- C: inserir um tipo novo ---';
+DECLARE @IDNovo INT;
+EXEC dbo.usp_TipoConector_Inserir @Designacao = N'Tesla NACS', @IDTipoConector = @IDNovo OUTPUT;
+PRINT N'Criado com o ID ' + CAST(@IDNovo AS VARCHAR);
+
+PRINT N'--- U: mudar-lhe a designacao ---';
+EXEC dbo.usp_TipoConector_Atualizar @IDTipoConector = @IDNovo, @Designacao = N'NACS';
+
+PRINT N'--- D: eliminar. Ninguem o usa, por isso sai ---';
+EXEC dbo.usp_TipoConector_Eliminar @IDTipoConector = @IDNovo;
+PRINT N'Eliminado.';
+GO
+
+PRINT N'--- D: tentar eliminar um que ESTA em uso ---';
+BEGIN TRY
+    DECLARE @EmUso INT = (SELECT TOP 1 IDTipoConector FROM PostoConector);
+    EXEC dbo.usp_TipoConector_Eliminar @IDTipoConector = @EmUso;
+END TRY
+BEGIN CATCH
+    PRINT N'Travado como devia: ' + ERROR_MESSAGE();
+END CATCH
+GO
+
+PRINT N'--- Erro tratado: designacao repetida ---';
+BEGIN TRY
+    /* usa uma designacao que EXISTE mesmo na tabela, senao o teste nao testa nada */
+    EXEC dbo.usp_TipoConector_Inserir @Designacao = N'CCS2';
+END TRY
+BEGIN CATCH
+    PRINT N'Erro apanhado: ' + ERROR_MESSAGE();
+END CATCH
+GO
+
+
+PRINT N'';
+PRINT N'=== CRUD CONCELHO ===';
+
+PRINT N'--- Estado inicial: repara em Coimbra, com zero postos ---';
+EXEC dbo.usp_Concelho_Listar;
+GO
+
+PRINT N'--- C + U + D sobre um concelho novo ---';
+DECLARE @IDCon INT;
+EXEC dbo.usp_Concelho_Inserir @Nome = N'Vila Verde', @IDConcelho = @IDCon OUTPUT;
+EXEC dbo.usp_Concelho_Atualizar @IDConcelho = @IDCon, @Nome = N'Vila Verde (Braga)';
+EXEC dbo.usp_Concelho_Eliminar  @IDConcelho = @IDCon;
+PRINT N'Inserido, alterado e eliminado sem problema: nao tinha postos.';
+GO
+
+PRINT N'--- D: tentar eliminar um concelho COM postos ---';
+BEGIN TRY
+    DECLARE @ConComPostos INT = (SELECT TOP 1 IDConcelho FROM Posto);
+    EXEC dbo.usp_Concelho_Eliminar @IDConcelho = @ConComPostos;
+END TRY
+BEGIN CATCH
+    PRINT N'Travado como devia: ' + ERROR_MESSAGE();
+END CATCH
+GO
+
+PRINT N'--- Estado final: igual ao inicial. A demonstracao nao deixa lixo ---';
+EXEC dbo.usp_Concelho_Listar;
 GO
