@@ -8,7 +8,7 @@ import {
 } from '../../2-repositories/carregamentoRepository.js';                   // as 4 funções de CRUD do repositório de carregamentos
 import { listarTarifarios } from '../../2-repositories/tarifarioRepository.js';
 import { listarPostos } from '../../2-repositories/postoRepository.js';   // usado para repetir a pergunta até o código do posto existir
-import { listarClientes } from '../../2-repositories/clienteRepository.js'; // usado para repetir a pergunta até o NIF do cliente existir // usado para calcular o custo a partir do preço do tarifário
+import { listarClientes } from '../../2-repositories/clienteRepository.js'; // usado para repetir a pergunta até o NIF do cliente existir
 
 const ESTADOS_VALIDOS = ['em curso', 'terminado', 'faturado', 'anulado']; // lista fixa usada pelo lerOpcaoValida, pra não aceitar um estado escrito errado
 
@@ -147,11 +147,13 @@ export function menuCarregamentos() { // função que mostra o submenu de Carreg
         const estado = lerOpcaoValida('Novo estado (em curso/terminado/faturado/anulado): ', ESTADOS_VALIDOS);     // lê o novo estado, repetindo até ser um dos 4 válidos
 
         const dadosNovos = { estado }; // objeto que vai crescendo conforme o estado escolhido
-        if (estado === 'terminado' || estado === 'faturado') { // só pede os campos de fecho se o carregamento está mesmo terminando
-          dadosNovos.dataHoraFim = lerDataHoraDepoisDe('Data/hora de fim (AAAA-MM-DD HH:mm): ', carregamentoAtual.dataHoraInicio);   // lê a data/hora de fim
-          dadosNovos.energiaKwh = lerNumeroPositivo('Energia fornecida (kWh): ');        // lê a energia consumida, medida pelo posto
+        let tarifarioEmFalta = false;  // trava o fecho se o tarifário do carregamento já não existir
 
-          // custo NÃO é perguntado — é calculado a partir da energia medida e do preço do tarifário deste carregamento
+        if (estado === 'terminado' || estado === 'faturado') { // só pede os campos de fecho se o carregamento está mesmo terminando
+
+          // O custo é calculado a partir do tarifário DESTE carregamento, por isso procura-se
+          // primeiro: se já não existir, não há preço para aplicar e não vale a pena pedir o resto.
+          // Acontece com registos antigos cujo tarifário desapareceu (ex.: o carregamento #10).
           const tarifarios = listarTarifarios();                                                     // busca todos os tarifários já cadastrados
           let tarifarioUsado = null;                                                                  // bandeira: fica null até encontrar o tarifário do carregamento
           for (let i = 0; i < tarifarios.length; i++) {
@@ -159,14 +161,26 @@ export function menuCarregamentos() { // função que mostra o submenu de Carreg
               tarifarioUsado = tarifarios[i];
             }
           }
-          dadosNovos.custo = dadosNovos.energiaKwh * tarifarioUsado.precoPorKwh + tarifarioUsado.taxaAtivacao; // energia × preço por kWh, mais a taxa de ativação
+
+          if (tarifarioUsado === null) {
+            tarifarioEmFalta = true;                                                    // não se lê mais nada; a mensagem é dada em baixo
+          } else {
+            dadosNovos.dataHoraFim = lerDataHoraDepoisDe('Data/hora de fim (AAAA-MM-DD HH:mm): ', carregamentoAtual.dataHoraInicio);   // lê a data/hora de fim
+            dadosNovos.energiaKwh = lerNumeroPositivo('Energia fornecida (kWh): ');     // lê a energia consumida, medida pelo posto
+            // custo NÃO é perguntado — é calculado a partir da energia medida e do preço do tarifário
+            dadosNovos.custo = dadosNovos.energiaKwh * tarifarioUsado.precoPorKwh + tarifarioUsado.taxaAtivacao; // energia × preço por kWh, mais a taxa de ativação
+          }
         }
 
-        const resultado = atualizarCarregamento(id, dadosNovos); // envia só os campos que mudaram
-        if (resultado === null) { // aqui já sabemos que o id existe, então null só pode significar: energia impossível para este posto/duração
-          console.log('Não foi possível atualizar — a energia informada não é possível para este posto, na duração indicada.');
+        if (tarifarioEmFalta) {
+          console.log('Não foi possível fechar — o tarifário "' + carregamentoAtual.tarifario + '" deste carregamento já não existe.');
         } else {
-          console.log('Carregamento atualizado:', resultado);
+          const resultado = atualizarCarregamento(id, dadosNovos); // envia só os campos que mudaram
+          if (resultado === null) { // aqui já sabemos que o id existe, então null só pode significar: energia impossível para este posto/duração
+            console.log('Não foi possível atualizar — a energia informada não é possível para este posto, na duração indicada.');
+          } else {
+            console.log('Carregamento atualizado:', resultado);
+          }
         }
       }
     } else if (opcao === '4') {
