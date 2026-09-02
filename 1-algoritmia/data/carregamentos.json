@@ -99,17 +99,6 @@
     "estado": "faturado"
   },
   {
-    "id": 10,
-    "posto": "P999",
-    "cliente": "555555555",
-    "tarifario": "Fantasma",
-    "dataHoraInicio": "2026-08-24 09:00",
-    "dataHoraFim": "2026-08-24 10:00",
-    "energiaKwh": 15,
-    "custo": 4.5,
-    "estado": "terminado"
-  },
-  {
     "id": 11,
     "posto": "P001",
     "cliente": "299106918",

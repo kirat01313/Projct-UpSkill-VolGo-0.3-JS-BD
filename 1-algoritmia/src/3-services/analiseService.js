@@ -23,7 +23,7 @@
      linhas    -> passou em tudo, entra na estatística   (opção 4 do menu)
      problemas -> registo estragado, com o motivo        (opção 5 do menu)
 
-  Um carregamento "em curso" ou "anulado" é ignorado, não é erro nenhum, apenas ainda não há nada para medir.
+  Um carregamento "em curso" ou "anulado" é ignorado.
 A auditoria serve para a empresa ver se os carregamentos estão a ser registados corretamente, e para o utilizador ver se o seu posto está a funcionar bem. 
 Por isso, em caso de anomalias não é um erro do programa, é um erro do registo que precisa ser verificado.
   ------------------------------------------------------------
@@ -32,8 +32,7 @@ Por isso, em caso de anomalias não é um erro do programa, é um erro do regist
      { linhas, problemas, media, desvioPadrao }
 
   A média diz se a previsão é otimista; o desvio padrão diz se erra
-  sempre da mesma maneira. Este service CALCULA e DEVOLVE — não imprime
-  nada. Quem imprime é o menuRelatorios.js.
+  sempre da mesma maneira. 
 */
 
 import { listarCarregamentos } from '../2-repositories/carregamentoRepository.js';
@@ -42,8 +41,7 @@ import { calcularHorasEntre, dataHoraValida } from '../utils/validacao.js';
 
 const TOLERANCIA = 1.0; //Podemos alterar a tolerancia consoante ao tipo de equipamento do posto e aos parametros estabelecidos, 
 //nesse caso não consideramos desvios na medição de energia, mas podemos considerar que um posto de 50kW pode entregar 55kW, por exemplo. 
-// A tolerancia é um multiplicador do valor máximo esperado, neste caso 1.0 significa que não há tolerancia, 1.1 significa que há uma tolerancia de 10% 
-// acima do valor máximo esperado.
+// A tolerancia é um multiplicador do valor máximo esperado.
 
 export function analisarDesvios() { 
   const carregamentosListados = listarCarregamentos(); 

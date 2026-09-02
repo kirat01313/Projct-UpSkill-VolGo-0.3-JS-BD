@@ -1,11 +1,5 @@
 /*
   MENU PRINCIPAL  (em conjunto)
-
-  A única camada que fala com o utilizador. Mostra o dashboard uma vez ao
-  arrancar, depois repete o menu até a opção ser "0".
-
-  Não calcula nada e não lê ficheiros: cada opção chama o submenu respetivo,
-  e o dashboard vem já calculado do dashboardService.
 */
 
 import readlineSync from 'readline-sync';

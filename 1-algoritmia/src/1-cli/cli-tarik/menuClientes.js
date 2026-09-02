@@ -6,7 +6,7 @@ import { listarClientes, procurarCliente1, inserirCliente1, alterarCliente1, exc
 const prompt = readlineSync.question;
 
 /*
-  MAPA DESTE FICHEIRO
+  MAPA
   ===================
   1. LEITURA DA CHAVE (NIF)      — lerNifNovoCliente (um que ainda NÃO exista),
                                    lernifCliente (um que JÁ exista; "0" cancela)
