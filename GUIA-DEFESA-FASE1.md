@@ -1,13 +1,18 @@
 # Guia de defesa — Fase 1 (Algoritmia e Programação)
 
-Material de estudo do Fred. **Não faz parte da entrega** — é para ler antes da
-apresentação.
+Material de estudo do Fred e do Tarik. **Não faz parte da entrega** — é para
+ler antes da apresentação.
+
+As secções 1, 2, 5, 6, 7 e 8 são comuns aos dois. A **3 é a parte do Fred** e a
+**4 é a parte do Tarik** — cada um estuda a sua, mas convém dar uma vista de
+olhos na do outro: nas defesas as perguntas costumam saltar de um lado para o
+outro.
 
 ---
 
 ## 1. A frase de abertura
 
-Se te derem 30 segundos para dizer o que é o projeto:
+
 
 > "É uma aplicação de consola para uma operadora de carregamento elétrico gerir
 > a sua rede. Tem quatro entidades — postos, clientes, tarifários e
@@ -15,7 +20,7 @@ Se te derem 30 segundos para dizer o que é o projeto:
 > dois relatórios. Está dividida em três camadas: os menus falam com o
 > utilizador, os repositórios tratam dos dados, e os services fazem as contas."
 
-Isso responde a metade das perguntas antes de serem feitas.
+
 
 ---
 
@@ -73,7 +78,7 @@ imprimir a mensagem?"*
 
 ---
 
-## 3. A TUA parte
+## 3. Parte fred
 
 ### 3.1 Tarifários — `menuTarifarios.js` + `tarifarioRepository.js`
 
@@ -235,9 +240,292 @@ if (concelhoDoPosto === null) concelhoDoPosto = '(posto desconhecido)';
 
 ---
 
-## 4. A parte conjunta
+## 4. Parte Tarik
 
-### 4.1 Dashboard — `dashboardService.js`
+### 4.1 Postos — `menuPostos.js` + `postoRepository.js`
+
+**O que faz:** CRUD de postos. Cada um tem código, concelho, potência em kW,
+tipo de conector e estado.
+
+**Cinco coisas para defenderes:**
+
+**a) O código é a chave, e é normalizado para maiúsculas na leitura.**
+
+```js
+lerTextoObrigatorio("...").trim().toUpperCase()
+```
+
+Quem escrever `p001` fica com `P001` gravado. Sem isto, havia dois postos
+diferentes para o mesmo sítio e os relatórios agrupavam mal.
+
+**b) O `"0"` está reservado para cancelar — e isso tem uma consequência.**
+
+Repara no comentário que lá está:
+
+> *"assim nunca chega a existir um posto com esse código, que depois seria
+> impossível de gerir"*
+
+É um bom argumento: se alguém conseguisse criar um posto com o código `0`,
+nunca mais o conseguia selecionar em lado nenhum, porque escrever `0` cancela
+sempre. **A reserva do código protege a aplicação de si própria.**
+
+**c) Duas funções espelho, com condições opostas.**
+
+```
+lerCodigoNovoPosto()      repete enquanto o código JÁ existir
+lercodigoPosto(acao)      repete enquanto o código NÃO existir
+```
+
+> "É a mesma pergunta feita ao contrário. Ao inserir, o que interessa é que
+> ainda não exista. Ao atualizar ou remover, o que interessa é que exista."
+
+E o `lerDadosPosto()` é partilhado pelas duas operações — no atualizar, a chave
+já foi escolhida e não se volta a pedir.
+
+**d) O `alterarPosto1` escreve campo a campo, de propósito.**
+
+```js
+postos[postoIndex].concelho = dadosNovos.concelho;
+postos[postoIndex].potenciaKw = dadosNovos.potenciaKw;
+postos[postoIndex].tipoConector = dadosNovos.tipoConector;
+postos[postoIndex].estado = dadosNovos.estado;
+```
+
+> "Não se copia o objeto todo. Assim, mesmo que venham campos a mais, **o
+> código nunca é alterado** — a chave está protegida pela própria estrutura da
+> função, e não por confiança em quem a chama."
+
+Bom ponto se te perguntarem porque não usaste o *spread* (`...`).
+
+**e) Integridade referencial na remoção.**
+O `excluirPosto1` percorre os carregamentos antes de apagar, e recusa se
+encontrar algum. Repara na técnica: em vez de apagar da lista, **constrói uma
+lista nova só com os que ficam**.
+
+```js
+if (restantes.length === postos.length) return false;   // não encontrou nenhum
+```
+
+> "Comparar os tamanhos no fim diz, de graça, se alguma coisa foi removida."
+
+**Os valores permitidos vêm do `constantes.js`.** Concelho, tipo de conector e
+estado são lidos com `lerOpcaoValida`, que só aceita valores da lista. Não há
+como escrever "Bragga" ou um estado inventado.
+
+---
+
+### 4.2 Clientes — `menuClientes.js` + `clienteRepository.js`
+
+Mesma estrutura dos postos, com uma decisão a mais que vale a pena saber
+explicar.
+
+**a) O NIF é a chave e é guardado como texto.**
+
+> "Não se fazem contas com um NIF. Como texto, não se perdem eventuais zeros à
+> esquerda."
+
+**b) A melhor decisão desta parte: porque é que o `lerNifNovoCliente` não usa o
+`lerNif`.**
+
+Existe um `lerNif()` no `validacao.js` que exige 9 dígitos e repete até vir um
+válido. Seria o óbvio a usar — mas não dá:
+
+> "O `lerNif` nunca deixaria passar o `0` de cancelar, porque `0` não tem 9
+> dígitos. Ele rejeitaria o cancelamento antes de nós o podermos sequer testar.
+> Por isso lê-se como texto obrigatório e faz-se a validação **dentro** do
+> ciclo, onde já dá para distinguir *'isto é um cancelamento'* de *'isto é um
+> NIF mal escrito'* — e dar a mensagem certa a cada um."
+
+E é por causa disto que o `soDigitos` está **exportado**: é a única função
+auxiliar do `validacao.js` que sai para fora, precisamente para o menu poder
+validar sem bloquear o `0`.
+
+Se te pedirem "uma decisão de que te orgulhes", é esta. Mostra que percebeste
+uma limitação de uma função tua e a contornaste sem a partir.
+
+**c) As quatro validações de dados pessoais.**
+
+| Campo | Regra |
+|---|---|
+| NIF | exatamente 9 dígitos |
+| Telefone | exatamente 9 dígitos |
+| Email | tem `@`, tem `.` depois do `@`, e não acaba em `.` |
+| Matrícula | 8 caracteres, com `-` nas posições 3 e 6 (`XX-XX-XX`) |
+
+A do email não usa expressões regulares de propósito — está feita com
+`indexOf`, que é matéria das aulas e dá para explicar linha a linha.
+
+**d) Integridade referencial.**
+O `excluirCliente1` consulta os carregamentos antes de apagar. Um cliente com
+histórico não sai.
+
+> ⚠️ **Nota:** esta função tinha um erro — chamava `listarCarregamentos()` sem
+> o ter importado, e rebentava sempre com `ReferenceError`. Está corrigido no
+> commit `1e02d90`, com a linha de import que faltava. O `postoRepository` já
+> a tinha; foi esquecida quando o código passou para os clientes.
+
+---
+
+### 4.3 Relatório 4.2 — clientes com carregamentos
+
+`relatorioService.js` → `relatorioClientes()`
+
+**A lógica: dois ciclos, um dentro do outro.**
+
+```
+para cada CLIENTE                    <- ciclo de fora
+   para cada CARREGAMENTO            <- ciclo de dentro
+      se for deste cliente, conta e soma a energia
+   guarda a linha
+```
+
+> "É o cruzamento de duas entidades. O carregamento guarda o NIF, e é por ele
+> que se ligam. Na Fase 2 isto passa a ser um `LEFT JOIN` com `GROUP BY`."
+
+**O ponto que o enunciado exige e que é fácil falhar:**
+
+> "Clientes **sem** carregamentos têm de aparecer, com zero. E aparecem — os
+> contadores começam a `0` antes do ciclo de dentro, por isso um cliente sem
+> nada dá `0 carregamentos | 0 kWh`, em vez de desaparecer da lista ou dar
+> `NaN`."
+
+Na demonstração, aponta para a **"Eva Semcarregamentos"**. Está nos dados
+exatamente para provar isto.
+
+**A idade — `calcularIdade()` no `validacao.js`.**
+
+Não basta subtrair os anos:
+
+```js
+if (mesHoje < mesNasc || (mesHoje === mesNasc && diaHoje < diaNasc)) {
+    idade = idade - 1;
+}
+```
+
+> "Quem nasceu em dezembro e estamos em setembro ainda não fez anos este ano.
+> A subtração de anos dá um a mais, e é preciso tirá-lo. A segunda parte da
+> condição trata o caso de estarmos no próprio mês do aniversário."
+
+Detalhe: `getMonth()` devolve 0 a 11, daí o `+1`. Se te perguntarem porquê, é
+porque no objeto `Date` do JavaScript janeiro é o mês zero.
+
+---
+
+### 4.4 Diferenciador — análise de desvios e auditoria
+
+`analiseService.js` — é a parte mais rica que tens, e dá para falar muito tempo.
+
+**A pergunta que responde:** *"os carregamentos demoram o que era suposto?"*
+
+```
+previsto = energia registada (kWh) / potência do posto (kW)
+real     = dataHoraFim - dataHoraInicio
+desvio   = real - previsto            (positivo = demorou mais)
+```
+
+**a) Porque é que o desvio é quase sempre positivo — e porque isso não é um bug.**
+
+> "A potência do posto é um **teto**, não uma garantia. O carro reduz o consumo
+> à medida que a bateria enche, e pode ficar ligado depois de já estar cheio.
+> Por isso o real demora sempre um pouco mais do que a conta prevê."
+
+Isto chama-se *taper*, e saber o nome ajuda.
+
+**b) A ideia central: um ciclo, duas saídas.**
+
+Este é o argumento mais forte da tua parte:
+
+> "Para calcular o desvio é preciso descartar os carregamentos que não servem.
+> E essas verificações **são** a auditoria — muda só o que se faz quando
+> falham. Os que passam entram na estatística; os que falham vão para uma lista
+> de problemas, com o motivo. **O mesmo ciclo produz as duas saídas**, e é por
+> isso que as opções 2 e 3 do menu chamam a mesma função."
+
+É também a melhor prova da arquitetura em camadas: um service que não imprime
+consegue alimentar dois ecrãs diferentes.
+
+**c) A auditoria deteta cinco situações:**
+
+```
+1. aponta para um posto que não existe
+2. está terminado mas sem data/hora de fim válida
+3. a data de fim não é depois da de início
+4. está terminado com 0 kWh registados
+5. registou mais energia do que o posto conseguia entregar naquele tempo
+```
+
+E há um ponto de rigor a saber defender:
+
+> "Um carregamento `em curso` ou `anulado` é simplesmente ignorado — não entra
+> nas estatísticas nem na lista de problemas. **Não é um erro**: é que ainda
+> não há nada para medir."
+
+**d) A constante `TOLERANCIA`.**
+
+```js
+const TOLERANCIA = 1.0;   // 1.0 = sem tolerância; 1.1 = aceita 10% acima
+```
+
+> "Está isolada numa constante em vez de espalhada pelo código, porque é um
+> parâmetro de negócio e não uma regra fixa. Um posto de 50 kW pode entregar um
+> pouco acima disso em certas condições. Mudando um número, muda-se a política
+> toda."
+
+**e) A média e o desvio padrão — a matemática.**
+
+Sabe explicar os dois em linguagem simples:
+
+```
+MÉDIA          onde está o centro
+DESVIO PADRÃO  quão espalhados os valores estão à volta desse centro
+```
+
+O desvio padrão em 4 passos:
+
+```
+1. distância de cada valor à média
+2. elevar cada distância ao quadrado
+3. somar tudo e dividir pelo total        -> variância
+4. tirar a raiz quadrada                  -> desvio padrão
+```
+
+As três perguntas prováveis, com resposta:
+
+*"Porquê elevar ao quadrado?"*
+> "Porque somar as distâncias com sinal dá **sempre zero**, para qualquer
+> conjunto de números — é a própria definição de média: o que está acima
+> cancela exatamente o que está abaixo. Ao quadrado, todas as distâncias
+> contam."
+
+*"Porquê a raiz no fim?"*
+> "Porque o quadrado também elevou as unidades. A variância está em 'minutos ao
+> quadrado', que não quer dizer nada. A raiz devolve minutos."
+
+*"Porque são dois ciclos separados?"*
+> "Porque o segundo precisa da média, e a média só existe depois de o primeiro
+> ter percorrido tudo. A segunda passagem é obrigatória."
+
+**f) A leitura do resultado — e é aqui que impressionas.**
+
+Com os dados de exemplo, a média é enorme e o desvio padrão é ainda maior.
+Isso não é um defeito do cálculo:
+
+> "O desvio padrão ser **maior** do que a média é um sinal de alarme: quer
+> dizer que os valores não estão agrupados à volta do centro. E não estão — há
+> um registo, o #15, que ficou marcado com 252 dias de duração e sozinho
+> distorce tudo. É precisamente esse contraste entre média e desvio padrão que
+> sinaliza a existência de registos a corrigir. A estatística não está a
+> falhar: está a fazer exatamente o seu trabalho, que é apontar o registo
+> estragado."
+
+**Utilidade para a operadora:** a média diz se a previsão dada ao cliente é
+otimista; o desvio padrão diz se o erro é consistente ou errático.
+
+---
+
+## 5. A parte conjunta
+
+### 5.1 Dashboard — `dashboardService.js`
 
 **O ponto todo está aqui:** os três indicadores filtram **estados diferentes**.
 
@@ -254,7 +542,7 @@ indicador 3  ->  por tarifário,  SÓ os 'faturado'
 quantidade é maior que zero. Sem isso, `0/0` dá `NaN` — e `NaN` propaga-se por
 tudo o resto sem dar erro.
 
-### 4.2 `utils/validacao.js`
+### 5.2 `utils/validacao.js`
 
 Há **dois tipos de função** neste ficheiro, e a diferença é a pergunta mais
 provável sobre ele:
@@ -272,7 +560,7 @@ Na prática, **ambos usam as funções do outro**: os menus do Fred leem input c
 as funções do Tarik, e o `analiseService.js` do Tarik valida datas com a
 `dataHoraValida` do Fred.
 
-### 4.3 Notas técnicas transversais
+### 5.3 Notas técnicas transversais
 
 **Porquê síncrono e não `async`/`await`?**
 > "Numa aplicação de consola que espera pelo utilizador a cada passo, o
@@ -289,44 +577,59 @@ as funções do Tarik, e o `analiseService.js` do Tarik valida datas com a
 
 ---
 
-## 5. Roteiro para a demonstração ao vivo
+## 6. Roteiro para a demonstração ao vivo
 
 Uma ordem que mostra tudo em poucos minutos, sem improviso:
 
-```
-1. npm start
-   -> o dashboard aparece sozinho. Aponta para os três indicadores
-      e diz que cada um filtra um estado diferente.
+A coluna da direita diz quem fala em cada passo, para não se atropelarem.
 
-2. Opção 5 -> 1     Relatório por posto
-   -> mostra os grupos, os subtotais e o TOTAL no fim
+```
+                                                                    QUEM
+1. npm start                                                        os dois
+   -> o dashboard aparece sozinho. Aponta para os três
+      indicadores e diz que cada um filtra um estado diferente.
+
+2. Opção 5 -> 1   Relatório por posto                                Fred
+   -> os grupos, os subtotais e o TOTAL no fim
       (o total é pedido no enunciado — aponta para ele)
 
-3. Opção 5 -> 3     Clientes com carregamentos
+3. Opção 5 -> 3   Clientes com carregamentos                        Tarik
    -> repara na "Eva Semcarregamentos": aparece com 0
       "clientes sem carregamentos não desaparecem da lista"
 
-4. Opção 6 -> 1     Receita por concelho
+4. Opção 6 -> 1   Receita por concelho                               Fred
    -> as duas decisões: só faturados, e concelhos a zero aparecem
 
-5. Opção 6 -> 3     Auditoria
-   -> os 3 registos com problemas, incluídos de propósito nos dados
+5. Opção 6 -> 2   Análise de desvios                                Tarik
+   -> a média e o desvio padrão, e porque é que o segundo
+      ser maior denuncia um registo estragado
 
-6. Opção 4 -> 3     Atualizar o carregamento #10 -> "terminado"
-   -> recusa com "o tarifário Fantasma deste carregamento já não existe"
+6. Opção 6 -> 3   Auditoria                                         Tarik
+   -> os 3 registos com problemas, postos nos dados de propósito
+      "é o MESMO ciclo que produziu as estatísticas do passo 5"
+
+7. Opção 4 -> 3   Atualizar o carregamento #10 -> "terminado"        Fred
+   -> recusa com "o tarifário Fantasma já não existe"
       Um registo órfão tratado, em vez de a aplicação ir abaixo.
 
-7. Opção 3 -> 4     Tentar remover o tarifário "Normal"
+8. Opção 3 -> 4   Tentar remover o tarifário "Normal"                Fred
    -> recusa: "tem carregamentos associados"
-      É a integridade referencial a funcionar à frente deles.
+
+9. Opção 2 -> 4   Tentar remover um cliente COM carregamentos       Tarik
+   -> recusa pela mesma razão, noutra entidade
 ```
 
-Os passos **6 e 7 são os mais fortes**: mostram regras a **impedir** operações,
-o que é bastante mais convincente do que qualquer listagem.
+**Os passos 7, 8 e 9 são os mais fortes**: mostram regras a **impedir**
+operações, o que é bastante mais convincente do que qualquer listagem. E o 8
+com o 9 seguidos provam que a integridade não é um caso isolado — é uma regra
+aplicada em toda a aplicação.
+
+A ligação entre o passo 5 e o 6 é o melhor momento do Tarik: são duas opções de
+menu diferentes alimentadas pela mesma função.
 
 ---
 
-## 6. Os casos-limite que estão tratados
+## 7. Os casos-limite que estão tratados
 
 Se te perguntarem *"e se os dados estiverem estragados?"*, tens três respostas
 concretas — e são as três demonstráveis ao vivo.
@@ -367,18 +670,41 @@ opção 2 do menu 6, a barra é cortada aos 40 caracteres e marcada com `>`.
 
 ---
 
-## 7. Se perguntarem o que farias diferente
+## 8. Se perguntarem o que farias diferente
 
-Tem uma resposta preparada — mostra maturidade e evita a hesitação:
+É quase certo que a pergunta aparece. Ter a resposta pronta mostra maturidade e
+evita a hesitação — e é melhor dizer vocês do que serem apanhados.
 
-> "Três coisas. Primeiro, os ciclos de procura não têm `break` — quando
-> encontram o que procuram continuam até ao fim da lista. Funciona, mas é
-> trabalho a mais. Segundo, o cálculo do custo está no menu e devia estar num
-> service, porque é uma regra de negócio e não apresentação. E terceiro, nós
-> **tratamos** as referências para registos que já não existem, mas tratar não
-> é o mesmo que **impedir** — continua a ser possível os dados chegarem a esse
-> estado. É exatamente isso que a Fase 2 resolve de raiz: com chaves
+### A resposta comum, para fechar
+
+Esta serve os dois, e é a mais forte. Guardem-na para o fim:
+
+> "Nós **tratamos** as referências para registos que já não existem, mas tratar
+> não é o mesmo que **impedir** — continua a ser possível os dados chegarem a
+> esse estado. É exatamente isso que a Fase 2 resolve de raiz: com chaves
 > estrangeiras, a base de dados não deixa sequer criar a referência."
 
-A última parte é a melhor: liga a Fase 1 à Fase 2 e mostra que percebeste
-**porque é que a base de dados existe**.
+Liga a Fase 1 à Fase 2 e mostra que perceberam **porque é que a base de dados
+existe**.
+
+### Fred
+
+> "Duas coisas na minha parte. Os ciclos de procura não têm `break` — quando
+> encontram o que procuram continuam até ao fim da lista; funciona, mas é
+> trabalho a mais. E o cálculo do custo está no menu, quando devia estar num
+> service: é uma regra de negócio, não apresentação."
+
+### Tarik
+
+> "Três coisas na minha parte. Os meus dois menus repetem-se por **recursão** —
+> a função chama-se a si própria no fim — enquanto os outros quatro usam um
+> ciclo `while`. Funciona, mas o `while` é mais simples e devia ter sido igual
+> em todos. Depois, na atualização eu mostro 'atualizado com sucesso' sem
+> verificar o que o repositório devolveu; hoje não mente porque a existência já
+> foi garantida antes, mas está a confiar na ordem das chamadas em vez de
+> verificar. E o `menuClientes` tem imports que não usa, copiados do
+> `menuPostos`."
+
+> **Porque é que vale a pena dizer isto:** nenhuma destas três coisas é um erro
+> de funcionamento. São escolhas que se fariam melhor à segunda vez — e é
+> exatamente isso que a pergunta quer ouvir.
