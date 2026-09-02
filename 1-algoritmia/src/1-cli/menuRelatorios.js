@@ -3,7 +3,7 @@ import {
   relatorioCarregamentosPorPosto,
   relatorioCarregamentosPorCliente,
 } from '../3-services/relatorioService.js';                                  // as duas funções do relatório 4.1, já prontas e testadas
-import { relatorioClientes } from '../3-services/relatorioService.js';       // a função do relatório 4.2, ainda por fazer
+import { relatorioClientes } from '../3-services/relatorioService.js';       // a função do relatório 4.2
 
 //======================================================
 //  1. IMPRESSÃO  (o service calcula; aqui só se imprime)

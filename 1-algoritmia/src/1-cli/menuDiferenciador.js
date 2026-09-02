@@ -8,9 +8,19 @@ import { analisarDesvios } from '../3-services/analiseService.js';           // 
 
 // desenha uma barra de "#" — é isto o "gráfico" no terminal
 function barra(quantidade) {
+  // Teto de segurança: um registo estragado dá desvios enormes (o #15 tem 252 dias,
+  // que a 5 minutos por '#' daria mais de 72 mil caracteres numa linha só e enchia
+  // o ecrã). Corta-se em COMPRIMENTO_MAXIMO e marca-se com '>' que foi cortada.
+  const COMPRIMENTO_MAXIMO = 40;
+  const foiCortada = quantidade > COMPRIMENTO_MAXIMO;
+  const quantos = foiCortada ? COMPRIMENTO_MAXIMO : quantidade;
+
   let texto = '';
-  for (let i = 0; i < quantidade; i++) {
+  for (let i = 0; i < quantos; i++) {
     texto += '#';
+  }
+  if (foiCortada) {
+    texto += '>';
   }
   return texto;
 }
