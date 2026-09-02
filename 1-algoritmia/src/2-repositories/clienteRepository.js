@@ -1,5 +1,7 @@
 import path from 'node:path'; //biblioteca do proprio node para definir caminhos de ficheiros
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'; //ler ficheiro, escrever ficheiro, verificar se existe ficheiro
+import { listarCarregamentos } from './carregamentoRepository.js'; //importa a função listarCarregamentos do repositório de carregamentos para verificar integridade referencial
+
 
 const caminhoCliente = path.join(import.meta.dirname, '../../data/clientes.json'); //define o endereço do ficheiro e o nome do ficheiro em uma constante
 

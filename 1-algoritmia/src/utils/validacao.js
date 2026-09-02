@@ -1,21 +1,6 @@
 import readlineSync from "readline-sync";
 const prompt = readlineSync.question;
 
-/*
-  MAPA DESTE FICHEIRO
-  ===================
-  1. LEITURA — texto e opções       (lerOpcaoValida, lerTextoObrigatorio)
-  2. LEITURA — números              (lerNumeroPositivo, lerNumeroNaoNegativo, lerInteiroPositivo)
-  3. LEITURA — dados do cliente     (lerNif, lerTelefone, lerEmail, lerMatricula)
-  4. LEITURA — datas                (lerData, lerDataHora, lerDataHoraDepoisDe)
-  5. CÁLCULOS com datas             (calcularHorasEntre, calcularIdade)
-  6. VALIDAÇÕES sim/não             (campoObrigatorio, valorPositivo, dataHoraValida) — parte Fred
-  7. AUXILIARES internas            (dataValida1, soDigitos, textoParaDataHora)
-
-  As funções "ler*" perguntam ao utilizador e REPETEM até vir um valor válido.
-  As funções de validação sim/não apenas respondem true/false — quem insiste é quem chama.
-*/
-
 //======================================================
 //  1. LEITURA — TEXTO E OPÇÕES
 //======================================================
@@ -23,7 +8,7 @@ const prompt = readlineSync.question;
 export function lerOpcaoValida(mensagem, listaValidos) { //mensagem é o "prompt(`Digite o código do novo Posto: `);"
     let valor = prompt(mensagem).trim().toLowerCase();     //listaValidos vem da constantes.js que lista valores que a empresa usa
     while (!listaValidos.includes(valor)) {                //checa se o valor inserido no prompt está incluido na lista de valores válidos
-        console.log(`Valor Inválido. Valores Válidos: [${listaValidos.join(", ")}]`); //
+        console.log(`Valor Inválido. Valores Válidos: [${listaValidos.join(", ")}]`); //Esse listaValidos busca o valor no menu, ele vai variar dependendo do menu que o usuário estiver, por exemplo, no menu de postos ele vai buscar os valores válidos para os postos, no menu de carregamentos ele vai buscar os valores válidos para os carregamentos, etc.
         valor = prompt(mensagem).trim().toLowerCase();
     }
     return valor;
@@ -53,7 +38,7 @@ export function lerNumeroPositivo(mensagem) { //função que lê um número posi
 
 export function lerNumeroNaoNegativo(mensagem) { //como o lerNumeroPositivo, mas o zero é aceite (ex.: taxa de ativação)
     let valor = Number(prompt(mensagem).trim());
-    while (Number.isNaN(valor) || valor < 0) {
+    while (Number.isNaN(valor) || valor < 0) { //Se uma for true o while continua, se ambas forem false o while para e retorna o valor
         console.log("Insira um número igual ou maior que zero.");
         valor = Number(prompt(mensagem).trim());
     }
@@ -75,7 +60,7 @@ export function lerInteiroPositivo(mensagem) { //para IDs: recusa letras e recus
 
 export function lerNif(mensagem) { //função que lê um NIF do usuário, repetindo a solicitação até que o valor seja válido (9 dígitos)
     let valor = prompt(mensagem).trim();
-    while (valor.length !== 9 || !soDigitos(valor)) {
+    while (valor.length !== 9 || !soDigitos(valor)) { 
         console.log("O NIF tem de ter exatamente 9 dígitos.");
         valor = prompt(mensagem).trim();
     }
@@ -93,7 +78,7 @@ export function lerTelefone(mensagem) { //função que lê um contacto telefóni
 
 export function lerEmail(mensagem) { //função que lê um email do usuário, repetindo a solicitação até que o valor seja válido (contendo "@" e ".")
     let valor = prompt(mensagem).trim().toLowerCase();
-    while (valor.indexOf("@") < 1 || valor.indexOf(".") < valor.indexOf("@") + 2 || valor.indexOf(".") === valor.length - 1) {
+    while (valor.indexOf("@") < 1 || valor.indexOf(".") < valor.indexOf("@") + 2 || valor.indexOf(".") === valor.length - 1) { //não pode começar com @, tem de ter um ponto depois do @, e não pode terminar com ponto
         console.log("Email inválido. Exemplo: ana@mail.pt");
         valor = prompt(mensagem).trim().toLowerCase();
     }
@@ -102,7 +87,7 @@ export function lerEmail(mensagem) { //função que lê um email do usuário, re
 
 export function lerMatricula(mensagem) { //função que lê uma matrícula do usuário, repetindo a solicitação até que o valor seja válido (formato XX-XX-XX)
     let valor = prompt(mensagem).trim().toUpperCase();
-    while (valor.length !== 8 || valor[2] !== "-" || valor[5] !== "-") {
+    while (valor.length !== 8 || valor[2] !== "-" || valor[5] !== "-") { //enquanto não tiver 8 caracteres ou não tiver os traços nos lugares certos, repete
         console.log("Matrícula inválida. Formato: XX-XX-XX (ex.: AA-01-BB).");
         valor = prompt(mensagem).trim().toUpperCase();
     }
@@ -170,7 +155,7 @@ export function calcularIdade(dataNascimento) {
 }
 
 //======================================================
-//  6. VALIDAÇÕES SIM/NÃO  (parte Fred — usadas nos repositórios)
+//  6. VALIDAÇÕES SIM/NÃO  
 //======================================================
 
 export function campoObrigatorio(valor) { //função que verifica se um valor é obrigatório (não pode ser undefined, null ou string vazia)
