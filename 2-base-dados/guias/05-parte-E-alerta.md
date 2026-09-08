@@ -1,112 +1,106 @@
 # Parte E — A funcionalidade nova: ALERTA
 
 > Guia de estudo. O código está em `Entregaveis Finais/06-parte-e-alerta.sql`.
-> A tabela `Alerta` é criada no script `01-criar-bd.sql`, com todas as outras.
+> A tabela `Alerta` é criada no `01-criar-bd.sql`, com todas as outras.
 
 ---
 
 ## 1. O que é, em uma frase
 
-> O sistema deteta sozinho carregamentos que registaram **mais energia do que o posto conseguiria ter entregue** no tempo que a sessão durou, e guarda cada deteção como um alerta que alguém tem de analisar.
+> O sistema deteta carregamentos que registaram **mais energia do que o posto conseguiria ter entregue** no tempo que a sessão durou, e guarda cada deteção como um alerta que alguém tem de analisar.
 
 ---
 
-## 2. Como se descobriu o problema
+## 2. O que o enunciado pede aqui
 
-Não foi inventado. Saiu de um resultado da Parte B.
-
-A função `fn_EstatisticasPosto` calcula a potência média realmente entregue por cada posto. Ao correr:
+Repara bem no ponto 4.5. Ele pede **quatro coisas**:
 
 ```
-P001   potência do posto: 22,00 kW   |   potência média entregue: 25,00 kW
-P012   potência do posto: 22,00 kW   |   potência média entregue: 27,20 kW
+descricao funcional
+regras de negocio associadas
+impacto esperado no sistema
+alteracoes necessarias ao modelo relacional
 ```
 
-Um posto de 22 kW não consegue entregar 25 kW. É **fisicamente impossível**.
+**Não diz "implementar".** O que vale os 10% é a proposta escrita. O código é o extra — e por isso o mantivemos simples.
 
-E, no entanto, a base de dados aceitou estes registos sem se queixar — porque nenhuma regra de integridade os proibia.
-
-> **Este é um bom ponto de partida para a defesa:** a funcionalidade nasceu de uma anomalia real encontrada nos próprios dados, não de uma ideia abstrata.
+As quatro estão escritas no cabeçalho do `06-parte-e-alerta.sql`, para irem também no PDF.
 
 ---
 
 ## 3. A regra
 
 ```
-energia máxima  =  potência do posto  ×  horas da sessão  ×  1,10
+energia maxima  =  potencia do posto  x  horas da sessao
 ```
 
-Se a energia registada for maior do que isto, é suspeita.
-
-**Porquê a margem de 10%?** Porque o contador arredonda e os minutos arredondam. Uma sessão registada como "1 hora" pode ter durado 63 minutos. Sem margem, o sistema geraria alertas por erros de arredondamento — e um alerta que dispara sempre deixa de ser lido.
+Se a energia registada for maior do que isto, é impossível.
 
 **Exemplo concreto:**
 
 ```
-posto de 22 kW, sessão de 1 hora
-  máximo aceite:  22 × 1 × 1,10  =  24,2 kWh
+posto de 22 kW, sessao de 1 hora
+  maximo:  22 x 1  =  22 kWh
 
   registou 20 kWh   ->  normal, nada acontece
-  registou 45 kWh   ->  impossível, gera alerta
+  registou 45 kWh   ->  impossivel, gera alerta
 ```
+
+### O detalhe técnico que vale nota
+
+```sql
+DATEDIFF(MINUTE, DataHoraInicio, DataHoraFim) / 60.0
+                                                 ^^^^
+```
+
+Tem de ser **`60.0`** e não `60`. Com um inteiro, o SQL Server faz divisão inteira e 45 minutos davam **zero horas** — a energia máxima dava zero e *tudo* era sinalizado.
+
+É o tipo de pormenor que mostra que testaste.
 
 ---
 
-## 4. As cinco regras de negócio
+## 4. As regras de negócio
 
 | # | Regra | Porquê |
 |---|---|---|
 | 1 | Suspeito se `energia > potência × horas` | é a definição do problema |
-| 2 | Margem de 10% | arredondamento do contador e dos minutos |
-| 3 | Só sessões **terminadas** | uma sessão a decorrer ainda não tem energia final |
-| 4 | O alerta **não bloqueia** o registo | ver a secção 6 |
-| 5 | Não duplicar alertas abertos no mesmo carregamento | senão cada correção de custo criava um alerta novo |
+| 2 | Só sessões **terminadas** | uma sessão a decorrer ainda não tem energia final |
+| 3 | O alerta **não impede** o registo | ver a secção 6 |
+| 4 | Ciclo de vida: Aberto → Justificado ou Confirmado | alguém tem de decidir |
 
 ---
 
-## 5. Porque é uma **tabela** e não uma consulta
+## 5. Porque é uma **tabela** e não só uma consulta
 
-Esta é a pergunta mais provável da professora.
+Esta é a pergunta mais provável.
 
-Uma consulta devolve sempre o mesmo resultado e **não guarda nada**. Um alerta precisa de memória:
-
-- quem o viu
-- o que decidiu
-- porquê
+Uma consulta devolve sempre o mesmo resultado e **não guarda nada**. Um alerta precisa de memória: quem o viu e o que decidiu.
 
 Sem tabela, a mesma anomalia voltaria a aparecer todos os dias, já analisada, e ninguém saberia disso.
 
-### E há uma segunda razão: os valores ficam congelados
+### E os valores ficam congelados
 
-A tabela `Alerta` guarda a `EnergiaRegistada` e a `EnergiaMaxima` **no momento da deteção**.
+A tabela guarda a `EnergiaRegistada` e a `EnergiaMaxima` **no momento da deteção**.
 
-Porquê? Imagina que amanhã alguém corrige a potência do P001 de 22 kW para 30 kW, porque estava mal registada. Se o alerta recalculasse, o alerta antigo passaria a parecer um erro do sistema — quando na verdade estava certo **com a informação que existia na altura**.
+Se amanhã alguém corrigir a potência do P001 de 22 para 30 kW, o alerta antigo continua a poder ser explicado. Se recalculasse, passaria a parecer um erro do sistema — quando estava certo **com a informação que existia na altura**.
 
-> **A frase:** "O alerta é uma fotografia do momento em que a suspeita nasceu, não um cálculo que se refaz."
+> **A frase:** *"o alerta é uma fotografia do momento em que a suspeita nasceu, não um cálculo que se refaz."*
 
 ---
 
-## 6. Porque é que o alerta **não bloqueia**
+## 6. Porque não bloqueia
 
-Esta foi uma decisão deliberada, e vale a pena defendê-la assim:
+Decisão deliberada:
 
-> **Trigger que bloqueia** serve para o que está **sempre** errado.
-> **Trigger que regista** serve para o que é apenas **estranho**.
-
-Um carregamento acima da capacidade do posto pode ter três causas:
-1. contador avariado
-2. erro de registo
-3. a potência do posto está desatualizada na base de dados
-
-Nas três, a energia **foi mesmo entregue a alguém**. Recusar o registo faria com que essa sessão simplesmente **desaparecesse** — e o problema ficava invisível, que é exatamente o contrário do que queremos.
+> Um carregamento acima da capacidade do posto pode ter três causas: contador avariado, erro de registo, ou a potência do posto está desatualizada na base de dados.
+>
+> Nas três, **a energia foi mesmo entregue a alguém**. Recusar o registo fazia essa sessão desaparecer — e o problema ficava invisível, que é o contrário do que queremos.
 
 Por isso: **regista-se, sinaliza-se, e deixa-se um humano classificar.**
 
-### O ciclo de vida do alerta
-
 ```
-Aberto  ->  Justificado    (erro de medição conhecido, arquiva-se)
-        ->  Confirmado     (problema real: o posto vai a inspeção)
+Aberto  ->  Justificado    erro de medicao conhecido, arquiva-se
+        ->  Confirmado     problema real: o posto vai a inspecao
 ```
 
 ---
@@ -119,66 +113,60 @@ Aqui:
 - a **energia** está no `Carregamento`
 - a **potência** está no `Posto`
 
-São tabelas diferentes. O `CHECK` não lá chega. Só um **trigger** consegue, porque o trigger pode fazer `JOIN`.
-
-> Esta limitação já estava documentada no dicionário de dados da versão anterior. A Parte E fecha-a.
+São tabelas diferentes. O `CHECK` não lá chega — é preciso um `JOIN`, e um `CHECK` não faz `JOIN`.
 
 ---
 
-## 8. A ligação à Fase 1
+## 8. A implementação
 
-Evolui a função de **auditoria** da aplicação de consola (`analiseService.js`), que percorria os carregamentos à procura de registos incoerentes.
+Não tem trigger, não tem função, não tem procedure. Só:
+
+```
+1  um SELECT           ver os carregamentos impossiveis
+2  um INSERT...SELECT  registar na tabela Alerta
+3  um SELECT com JOIN  a fila de trabalho
+4  dois UPDATE         o ciclo de vida
+5  um SELECT com GROUP BY  postos com mais alertas
+```
+
+> **Se ela perguntar porque não é automático:** a Fase 1 também corria a pedido. O `analiseService.js` percorria os carregamentos quando alguém o chamava. Isto é o mesmo, escrito em SQL.
+
+O `NOT IN (SELECT IDCarregamento FROM Alerta)` no passo 2 evita registar duas vezes o mesmo carregamento se correres o script outra vez.
+
+---
+
+## 9. A ligação à Fase 1
+
+Evolui a rotina de **auditoria** da aplicação de consola (`analiseService.js`), que percorria os carregamentos à procura de registos incoerentes.
 
 | | Fase 1 | Fase 2 |
 |---|---|---|
-| Quando corre | quando alguém se lembra | no instante do registo |
-| O que analisa | só o que está nos ficheiros nesse momento | tudo, sempre |
-| Memória | nenhuma | guarda a análise humana |
+| Onde corre | em JavaScript, sobre ficheiros JSON | em SQL, sobre a base de dados |
+| Memória | nenhuma | o resultado da análise fica guardado |
+| Alcance | só o que estivesse nos ficheiros | tudo, e cruza duas tabelas |
 
-> A professora pediu que a funcionalidade **evoluísse** o requisito diferenciador da Fase 1, e não que fosse uma coisa nova. É isso que esta tabela faz.
-
----
-
-## 9. Impacto esperado (o que dizer sobre a utilidade)
-
-- Um posto com alertas repetidos torna-se **candidato a inspeção antes de avariar**. Hoje, só se sabe que um posto tem problema quando alguém abre uma ocorrência — ou seja, quando já avariou.
-- Impede que se fature energia que não foi entregue.
-- Dá à operação uma **fila de trabalho concreta**, em vez de um relatório que alguém tem de se lembrar de correr.
+> O enunciado pede que a funcionalidade **evolua** o requisito diferenciador da Fase 1, e não que seja uma coisa nova. É isso que esta faz.
 
 ---
 
-## 10. A demonstração (já executada, com resultados)
+## 10. O resultado
 
-O script faz quatro coisas, por esta ordem:
+```
+IDAlerta  Carregamento  Posto  Potencia  Registada  Maxima  Excesso
+   1          17        P001    22 kW     45,000    22,000   23,000
+   2          18        P012    22 kW     30,000    11,000   19,000
+```
 
-**1. Varrimento inicial** — analisa os carregamentos que já existiam.
-```
-apanhou os carregamentos 36 e 37
-  36 -> 45 kWh em 1 hora num posto de 22 kW
-  37 -> 30 kWh em 30 minutos num posto de 22 kW
-```
-Estes dois foram postos nos dados de teste **de propósito**: passam por todas as restrições `CHECK` existentes e mesmo assim são impossíveis.
+Os carregamentos 17 e 18 foram postos nos dados de teste **de propósito**: passam por todas as restrições `CHECK` do modelo e mesmo assim descrevem algo impossível.
 
-**2. Um carregamento novo, impossível** — 90 kWh num posto de 22 kW.
-```
-alertas antes: 2   ->   alertas depois: 3
-```
-O trigger apanhou-o sozinho, no momento do INSERT.
-
-**3. Um carregamento novo, plausível** — 20 kWh.
-```
-nenhum alerta gerado
-```
-Este é o **caso de controlo**: prova que o trigger não dispara a torto e a direito.
-
-**4. Ciclo de vida** — um alerta é classificado como `Justificado`, outro como `Confirmado`.
+> **Se ela perguntar porque há dados errados na base:** são a demonstração da funcionalidade. O ponto é precisamente que nenhuma restrição os conseguia travar.
 
 ---
 
-## 11. O que mudou no modelo por causa desta funcionalidade
+## 11. O que mudou no modelo
 
-**Uma tabela nova:** `Alerta`.
+**Uma tabela nova:** `Alerta`, com 6 colunas.
 **Nenhuma tabela existente mudou.**
 **Nenhum dos sete relatórios obrigatórios muda de resultado.**
 
-> A funcionalidade **acrescenta**, não interfere. Isto é um bom argumento: mostra que foi desenhada para encaixar no modelo, e não colada por cima.
+> A funcionalidade **acrescenta, não interfere**. É um bom argumento: mostra que foi desenhada para encaixar no modelo, e não colada por cima.

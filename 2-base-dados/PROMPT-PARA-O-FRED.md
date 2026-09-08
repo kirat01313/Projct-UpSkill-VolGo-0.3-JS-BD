@@ -31,12 +31,13 @@ Entregaveis Finais/                    o que se entrega
   VoltGo-ModeloRelacional.drawio       diagrama final
   VoltGo-ModeloRelacional.png
   VoltGo-DicionarioDados.xlsx          dicionário final (6 folhas)
-  01-criar-bd.sql                      PARTE B — 17 tabelas
+  01-criar-bd.sql                      PARTE B — 16 tabelas e 1 vista
   02-dados-teste.sql                   PARTE B — dados de teste
-  03-procedures-funcoes-triggers.sql   pedido oral: CRUD, funções, triggers
+  03-procedures-funcoes-triggers.sql   pedido oral: CRUD, função, triggers
   04-relatorios.sql                    PARTE C — os 7 relatórios obrigatórios
   05-relatorio-proposto.sql            PARTE D
   06-parte-e-alerta.sql                PARTE E — funcionalidade nova
+  07-demonstracao.sql                  mostra os objetos a funcionar
 ```
 
 **Lê primeiro `guias/00-comeca-aqui.md`, depois `guias/01-as-quatro-alteracoes.md` e depois `Entregaveis Finais/01-criar-bd.sql`.** Os scripts estão todos comentados a explicar o *porquê* de cada decisão, não só o *quê*.
@@ -44,8 +45,9 @@ Entregaveis Finais/                    o que se entrega
 ## Estado atual
 
 - Base de dados: **SQL Server Express**, instância `localhost\SQLEXPRESS`, base `VoltGo`.
-- **17 tabelas, 99 colunas, 20 ligações.**
-- Os seis scripts foram executados e testados com sucesso, por esta ordem: 01 → 02 → 03 → 04 → 05 → 06.
+- **16 tabelas, 89 colunas, 19 ligações, 1 vista.**
+- 12 stored procedures (CRUD em 3 tabelas de catálogo), 1 função escalar, 2 triggers.
+- Os sete scripts foram executados e testados com sucesso, por esta ordem: 01 → 02 → 03 → 04 → 05 → 06 → 07.
 - O diagrama e o dicionário **não foram escritos à mão**: foram gerados a partir do esquema real da base de dados depois de os scripts correrem, e verificados um contra o outro. Por isso não podem divergir dos scripts.
 
 ## As quatro alterações que a professora pediu (todas já feitas)
@@ -56,7 +58,13 @@ Entregaveis Finais/                    o que se entrega
 
 3. **Preço e taxa de ativação também na tabela `Tarifario`** (`PrecoKwhAtual`, `TaxaAtivacaoAtual`), mantendo a `TarifarioPreco` como histórico e fonte da verdade. Um trigger (`TR_TarifarioPreco_SincronizaAtual`) copia automaticamente o preço em vigor, para não ser possível alterar um e esquecer o outro.
 
-4. **Nova funcionalidade `Alerta`.** Regista automaticamente carregamentos que declararam mais energia do que o posto conseguiria ter entregue no tempo da sessão (com margem de 10%). Não bloqueia o registo — regista e deixa um humano classificar como Justificado ou Confirmado. Evolui a função de auditoria da Fase 1.
+4. **Nova funcionalidade `Alerta`.** Regista carregamentos que declararam mais energia do que o posto conseguiria ter entregue no tempo da sessão. Não bloqueia o registo — regista e deixa um humano classificar como Justificado ou Confirmado. Evolui a rotina de auditoria da Fase 1.
+
+## Nota importante sobre o estado do código
+
+O trabalho foi **deliberadamente simplificado** para ficar ao nível do que a docente deu nas aulas. Não sugiras "melhorias" que o tornem mais avançado — CTE, OUTER APPLY, transações onde não são precisas, validações duplicadas nas procedures. Isso já foi retirado de propósito.
+
+Os comentários grandes também foram retirados dos scripts: a explicação vive toda nos guias.
 
 ## Divisão do trabalho
 

@@ -150,11 +150,12 @@ Os dados em `02-dados-teste.sql` têm **órfãos de propósito**:
 | Órfão | Serve para testar |
 |---|---|
 | Coimbra — concelho sem postos | relatório 6 |
-| CHAdeMO — tipo de conector nunca usado | relatório 1 |
-| P013 — posto sem carregamentos | relatório 2 |
-| clientes sem carregamentos | relatório 4 |
-| postos sem ocorrências | relatório 7 |
-| fatura por pagar mas **ainda dentro do prazo** | relatório D4 |
+| CHAdeMO e Type 1 — tipos de conector nunca usados | relatório 1 |
+| P004 — posto sem carregamentos | relatório 2 |
+| Filipe Nunes — cliente sem carregamentos | relatório 4 |
+| três clientes com exatamente um carregamento | relatório 4 (`HAVING > 1`) |
+| dois postos sem ocorrências | relatório 7 |
+| fatura por pagar mas **ainda dentro do prazo** | Parte D |
 
 Se as consultas estivessem erradas, **nada disto apareceria** — e o resultado continuaria a parecer bonito.
 
