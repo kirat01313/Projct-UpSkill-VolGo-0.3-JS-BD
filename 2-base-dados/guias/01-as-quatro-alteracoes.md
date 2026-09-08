@@ -40,11 +40,10 @@ Lê-se assim:
 ### O que isto passa a permitir
 
 ```
-FT2026/0007   TransNorte Lda   ->  agrupa 4 carregamentos   =  46,80 EUR
-                                    pagamento 1 (15/07)     =  31,20 EUR
-                                    pagamento 2 (não houve)
+FT2026/0007   TransNorte Lda   ->  agrupa 2 carregamentos   =  15,60 EUR
+                                    pagamento em 20/08      =  10,00 EUR
                                     ------------------------------------
-                                    em falta                =  15,60 EUR
+                                    em falta                =   5,60 EUR
 ```
 
 Um pagamento **parcial**. A versão anterior não conseguia representar isto de todo.

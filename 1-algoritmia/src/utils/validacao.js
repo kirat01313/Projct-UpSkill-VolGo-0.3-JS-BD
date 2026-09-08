@@ -197,7 +197,7 @@ function dataValida1(data) { //função auxiliar que verifica se uma string é u
     if (mes < 1 || mes > 12) return false;
     if (dia < 1 || dia > 31) return false;
     const anoMaximo = new Date().getFullYear() + 1; //teto dinâmico: o ano corrente mais um, para aceitar carregamentos na passagem de ano
-    if (ano < 1900 || ano > anoMaximo) return false;
+    if (ano < 1926 || ano > anoMaximo) return false;
 
     //até aqui só confirmamos que cada pedaço está na escala certa, mas isso deixa
     //passar dias que não existem (ex.: 30 de fevereiro). O JavaScript "arruma"

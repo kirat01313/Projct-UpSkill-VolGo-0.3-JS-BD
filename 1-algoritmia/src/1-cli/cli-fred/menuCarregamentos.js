@@ -13,7 +13,7 @@ import { listarClientes } from '../../2-repositories/clienteRepository.js'; // u
 const ESTADOS_VALIDOS = ['em curso', 'terminado', 'faturado', 'anulado']; // lista fixa usada pelo lerOpcaoValida, pra não aceitar um estado escrito errado
 
 /*
-  MAPA DESTE FICHEIRO
+  MAPA
   ===================
   1. AUXILIAR GENÉRICA           — procurarNaLista (procura um item por campo, ignorando maiúsculas)
   2. LEITURA COM EXISTÊNCIA      — lerCodigoPostoExistente, lerNifClienteExistente, lerNomeTarifarioExistente

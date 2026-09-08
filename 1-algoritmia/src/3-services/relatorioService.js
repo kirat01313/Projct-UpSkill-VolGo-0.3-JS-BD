@@ -12,8 +12,6 @@
         Cruza duas entidades: dois ciclos, um dentro do outro.
         Clientes sem carregamentos aparecem com zero, em vez de desaparecer.
 
-  Os três devolvem os dados calculados; nenhum imprime. É isso que permite
-  reutilizá-los — o mesmo cálculo alimenta opções de menu diferentes.
 */
 
 import { listarCarregamentos } from '../2-repositories/carregamentoRepository.js';
@@ -117,3 +115,35 @@ export function relatorioClientes() {
 
   return linhas;      // devolve os dados; quem imprime é o menu
 }
+
+
+/*
+export function relatorioCarregamentosEntreDatas(dataInicio, dataFim) {
+  const carregamentos = listarCarregamentos();
+  const carregamentosEntreDatas = []; // array para armazenar os carregamentos entre as datas
+
+  for (let i = 0; i < carregamentos.length; i++) {
+    const dataCarregamento = new Date(carregamentos[i].dataHoraInicio); // converte a data do carregamento para objeto Date
+    if (dataCarregamento >= dataInicio && dataCarregamento <= dataFim) {
+      carregamentosEntreDatas.push(carregamentos[i]); // adiciona o carregamento ao array se estiver entre as datas
+    }
+  }
+  return carregamentosEntreDatas; // retorna o array com os carregamentos entre as datas
+}
+*/
+
+export function relatorioCarregamentosEntreDatas(dataInicio, dataFim) {
+  const carregamentos = listarCarregamentos();
+  const carregamentosEntreDatas = []; // array para os carregamentos dentro do intervalo
+
+  for (let i = 0; i < carregamentos.length; i++) {
+    const dataCarregamento = carregamentos[i].dataHoraInicio.substring(0, 10); // corta a hora, fica só "AAAA-MM-DD"
+
+    if (dataCarregamento >= dataInicio && dataCarregamento <= dataFim) { // no formato AAAA-MM-DD, comparar texto = comparar datas
+      carregamentosEntreDatas.push(carregamentos[i]);
+    }
+  }
+
+  return carregamentosEntreDatas;
+}
+  

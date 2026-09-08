@@ -13,9 +13,9 @@ Continua a aplicação de consola da Fase 1.
 ```
 2-base-dados/
 │
-├── LEIA-ME.md                    <-- estás aqui
-│
-├── guias/                        material de estudo, para ler antes de defender
+├── LEIA-ME.md                    <-- estás aqui        }
+├── PROMPT-PARA-O-FRED.md                               }  VOSSO
+├── guias/                        material de estudo    }  nunca sai daqui
 │   ├── 00-comeca-aqui.md               o modelo do zero, sem assumir nada
 │   ├── 01-as-quatro-alteracoes.md      o que mudou depois da conversa com a professora
 │   ├── 02-procedures-funcoes-triggers.md   pedido oral da docente, fora do PDF
@@ -24,17 +24,23 @@ Continua a aplicação de consola da Fase 1.
 │   ├── 05-parte-E-alerta.md
 │   └── 06-perguntas-da-defesa.md       perguntas prováveis e respostas curtas
 │
-└── Entregaveis Finais/           o que se entrega
+└── Entregaveis Finais/           PARA A PROFESSORA
+    ├── VoltGo-Relatorio.docx           abrir no Word e exportar para PDF
     ├── VoltGo-ModeloRelacional.drawio
     ├── VoltGo-ModeloRelacional.png
     ├── VoltGo-DicionarioDados.xlsx
-    ├── 01-criar-bd.sql
-    ├── 02-dados-teste.sql
-    ├── 03-procedures-funcoes-triggers.sql
-    ├── 04-relatorios.sql
-    ├── 05-relatorio-proposto.sql
-    └── 06-parte-e-alerta.sql
+    └── scripts/
+        ├── 01-criar-bd.sql
+        ├── 02-dados-teste.sql
+        ├── 03-procedures-funcoes-triggers.sql
+        ├── 04-relatorios.sql
+        ├── 05-relatorio-proposto.sql
+        ├── 06-parte-e-alerta.sql
+        └── 07-demonstracao.sql
 ```
+
+> **Antes de entregar:** abrir o `.docx` no Word, clicar com o botão direito no índice
+> e escolher «Atualizar campo» para ele se preencher. Depois exportar para PDF.
 
 ---
 
@@ -42,7 +48,7 @@ Continua a aplicação de consola da Fase 1.
 
 1. **`guias/00-comeca-aqui.md`** — o modelo explicado do zero. Se nunca leste nada disto, começa por aqui.
 2. **`guias/01-as-quatro-alteracoes.md`** — o que mudou depois da conversa com a professora.
-3. O guia da parte que te calhou (B, C, D ou E).
+3. O guia da parte que te calhou (C, D ou E).
 4. **`guias/06-perguntas-da-defesa.md`** — na véspera.
 
 Os ficheiros `.sql` estão comentados de cima a baixo. Os comentários explicam **porquê**, não só o quê.
@@ -54,12 +60,13 @@ Os ficheiros `.sql` estão comentados de cima a baixo. Os comentários explicam 
 Sempre **por esta ordem**. Cada um assume que os anteriores já correram.
 
 ```
-01-criar-bd.sql                    cria a base e as 17 tabelas
+01-criar-bd.sql                    cria a base, 16 tabelas e 1 vista
 02-dados-teste.sql                 enche com dados de teste
-03-procedures-funcoes-triggers.sql PARTE B
-04-relatorios.sql                  PARTE C — os 7 obrigatórios
+03-procedures-funcoes-triggers.sql 12 procedures, 1 funcao, 2 triggers
+04-relatorios.sql                  PARTE C — os 7 obrigatorios
 05-relatorio-proposto.sql          PARTE D
 06-parte-e-alerta.sql              PARTE E — a funcionalidade nova
+07-demonstracao.sql                mostra os objetos a funcionar (opcional)
 ```
 
 ### No VSCode
@@ -99,10 +106,10 @@ estatística e um trigger com lógica automática.
 ## Números do modelo
 
 ```
-17 tabelas · 99 colunas · 20 ligações
-3 triggers de negócio + 1 trigger de deteção
-12 stored procedures (CRUD em 3 tabelas: Tarifário, TipoConector, Concelho)
-2 funções (uma escalar, uma tabular)
+16 tabelas · 89 colunas · 19 ligações · 1 vista
+12 stored procedures (CRUD em 3 tabelas: TipoConector, Concelho, TipoAvaria)
+ 1 função escalar
+ 2 triggers
 ```
 
 ---

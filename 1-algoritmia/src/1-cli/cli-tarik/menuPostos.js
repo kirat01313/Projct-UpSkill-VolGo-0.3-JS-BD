@@ -6,7 +6,7 @@ import { listarPostos, inserirPosto1, alterarPosto1, procurarPosto1, excluirPost
 const prompt = readlineSync.question;
 
 /*
-  MAPA DESTE FICHEIRO
+  MAPA 
   ===================
   1. LEITURA DA CHAVE (código)   — lerCodigoNovoPosto (um que ainda NÃO exista),
                                    lercodigoPosto (um que JÁ exista; "0" cancela)

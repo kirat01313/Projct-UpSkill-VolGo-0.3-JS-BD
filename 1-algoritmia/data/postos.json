@@ -2,9 +2,9 @@
   {
     "codigo": "P001",
     "concelho": "braga",
-    "potenciaKw": 22,
+    "potenciaKw": 25,
     "tipoConector": "type2",
-    "estado": "ativo"
+    "estado": "manutencao"
   },
   {
     "codigo": "P002",
@@ -35,9 +35,9 @@
     "estado": "ativo"
   },
   {
-    "codigo": "0",
+    "codigo": "P006",
     "concelho": "braga",
-    "potenciaKw": 50,
+    "potenciaKw": 150,
     "tipoConector": "ccs",
     "estado": "ativo"
   }

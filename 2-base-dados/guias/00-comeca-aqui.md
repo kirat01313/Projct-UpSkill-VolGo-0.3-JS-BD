@@ -1,7 +1,7 @@
 # Começa aqui — o trabalho todo, do zero
 
 > Este guia não assume que sabes nada. Lê-o antes de todos os outros.
-> No fim, vais perceber o diagrama e saber para que serve cada uma das 17 tabelas.
+> No fim, vais perceber o diagrama e saber para que serve cada uma das 16 tabelas.
 
 ---
 
@@ -29,7 +29,7 @@ E ela **recusa** o que violar essas regras. Mesmo que o programa esteja com um e
 
 ---
 
-# Parte 2 — Porque é que são 17 tabelas e não uma só
+# Parte 2 — Porque é que são 16 tabelas e não uma só
 
 Esta é a pergunta mais natural do mundo, e a resposta explica quase tudo o resto.
 
@@ -81,7 +81,7 @@ Agora:
 - o posto de Fafe **existe sem carregamentos** → é uma linha própria
 - apagar um carregamento **não apaga mais nada**
 
-Isto chama-se **normalização**. É por isto que são 17 tabelas.
+Isto chama-se **normalização**. É por isto que são 16 tabelas.
 
 ---
 
@@ -264,10 +264,10 @@ PAGAMENTO   valor, data, meio (MBWay, cartao, transferencia)  ->  abate numa FAT
 Uma fatura pode receber **vários** pagamentos. É isso que permite representar um **pagamento parcial**:
 
 ```
-FT2026/0007   valor da fatura       46,80 EUR
-              pagamento em 15/07    31,20 EUR
+FT2026/0007   valor da fatura       15,60 EUR   (dois carregamentos)
+              pagamento em 20/08    10,00 EUR
               ------------------------------
-              ainda em falta        15,60 EUR
+              ainda em falta         5,60 EUR
 ```
 
 Não há coluna "em dívida". Calcula-se. (Está explicado no guia da Parte D.)
@@ -275,12 +275,11 @@ Não há coluna "em dívida". Calcula-se. (Está explicado no guia da Parte D.)
 ### 11. Um dia o posto avaria
 
 ```
-TIPOAVARIA           categorias de avaria
-OCORRENCIA           que posto, que tipo, quando, custo da reparacao, estado
-OCORRENCIAHISTORICO  o caminho dos estados, preenchido por trigger
+TIPOAVARIA   categorias de avaria
+OCORRENCIA   que posto, que tipo, quando, custo da reparacao, estado
 ```
 
-Mesma lógica do carregamento: a ocorrência guarda o estado atual, o histórico guarda o percurso.
+A própria tabela `Ocorrencia` já é o histórico de avarias: cada linha é uma avaria, com a data em que abriu e o custo da intervenção.
 
 ### 12. E um registo impossível
 
@@ -294,7 +293,7 @@ Esta é a funcionalidade nova do trabalho. Tem guia próprio.
 
 ---
 
-# Parte 5 — As 17 tabelas, agrupadas
+# Parte 5 — As 16 tabelas, agrupadas
 
 É assim que estão organizadas no diagrama, por cores:
 
@@ -314,7 +313,7 @@ OPERACAO      Reserva · Carregamento · CarregamentoHistorico
 FATURACAO     Fatura · Pagamento
               o dinheiro
 
-MANUTENCAO    TipoAvaria · Ocorrencia · OcorrenciaHistorico · Alerta
+MANUTENCAO    TipoAvaria · Ocorrencia · Alerta
               o que corre mal
 ```
 
@@ -333,7 +332,9 @@ O enunciado tem cinco partes. Estas são as quatro que têm guia:
 
 ### O que fizemos em cada uma
 
-**B** — 4 procedures (um CRUD sobre o Tarifário), 2 funções, 4 triggers.
+**B** — o esquema: 16 tabelas, 1 vista e as restrições.
+
+Por cima disso, e a pedido oral da docente: 12 procedures (CRUD em três tabelas de catálogo), 1 função escalar e 2 triggers.
 
 **C** — os 7 relatórios. Divididos: Fred faz o 3, 5 e 6; tu fazes o 1, 2, 4 e 7.
 
@@ -346,12 +347,13 @@ O enunciado tem cinco partes. Estas são as quatro que têm guia:
 # Parte 7 — Os ficheiros, e por que ordem se corre
 
 ```
-01-criar-bd.sql       cria a base e as 17 tabelas       <-- APAGA a base anterior
+01-criar-bd.sql       cria a base, 16 tabelas e 1 vista   <-- APAGA a base anterior
 02-dados-teste.sql    enche com dados
-03-...triggers.sql    PARTE B
+03-...triggers.sql    procedures, funcao e triggers
 04-relatorios.sql     PARTE C
 05-relatorio-...sql   PARTE D
 06-parte-e-...sql     PARTE E
+07-demonstracao.sql   mostra tudo a funcionar (opcional)
 ```
 
 Sempre por esta ordem. Cada um assume que os anteriores já correram.
@@ -383,6 +385,7 @@ Sempre por esta ordem. Cada um assume que os anteriores já correram.
 | **DEFAULT** | valor que entra sozinho se não disseres nada |
 | **NULL** | "ainda não se sabe" ou "não se aplica". **Não é zero nem texto vazio.** |
 | **JOIN** | juntar duas tabelas pela seta que as liga |
+| **Vista** | um SELECT guardado com um nome. Não guarda dados: guarda a pergunta |
 | **Trigger** | código que dispara sozinho quando algo muda |
 | **Procedure** | receita guardada na base; chamas pelo nome |
 | **Função** | recebe valores e devolve um resultado |

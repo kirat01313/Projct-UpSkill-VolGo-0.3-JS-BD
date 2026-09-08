@@ -333,9 +333,10 @@ propósito nos dados de exemplo:
 O **dashboard** (`3-services/dashboardService.js`) foi feito em conjunto.
 
 O ficheiro **`utils/validacao.js`** é partilhado: a maior parte das funções são
-do Tarik — as que leem input e insistem até vir um valor válido, mais os
-cálculos de idade e duração — e as três validações que respondem apenas
-sim/não (`campoObrigatorio`, `valorPositivo`, `dataHoraValida`) são do Fred,
+do Tarik — as que leem input e insistem até vir um valor válido
+ e as três validações que respondem apenas
+sim/não (`campoObrigatorio`, `valorPositivo`, `dataHoraValida`) são do Fred, mais os
+cálculos de idade e duração,
 usadas dentro dos repositórios dele. Na prática, ambos usam as funções do
 outro: os menus do Fred leem input com as funções do Tarik, e o
 `analiseService.js` do Tarik valida datas com a função do Fred.
@@ -349,8 +350,4 @@ outro: os menus do Fred leem input com as funções do Tarik, e o
   `readline-sync`), sem `async`/`await`. Foi uma decisão tomada no início: numa
   aplicação de consola que espera pelo utilizador a cada passo, o síncrono
   mantém o fluxo do código igual ao fluxo da execução.
-- Os NIF são guardados como **texto**, não como número: não se fazem contas com
-  NIF, e assim não se perdem eventuais zeros à esquerda.
-- Os quatro estados de um carregamento são `em curso`, `terminado`, `faturado`
-  e `anulado`, escritos exatamente assim — o dashboard e os relatórios filtram
-  por estes valores.
+

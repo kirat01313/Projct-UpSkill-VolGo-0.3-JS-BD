@@ -1,19 +1,3 @@
-/*
-  DASHBOARD  (em conjunto)
-
-  Os três indicadores mostrados ao arrancar a aplicação. Cada um filtra um
-  ESTADO DIFERENTE — é o detalhe que decide se as contas estão certas:
-
-     1. contagem de carregamentos em curso / terminados / faturados
-     2. quantidade e energia MÉDIA por posto        -> só os 'terminado'
-     3. quantidade e receita MÉDIA por tarifário    -> só os 'faturado'
-
-  É o padrão do acumulador (soma + contador, dividir no fim), aplicado três
-  vezes. A quantidade é verificada antes de dividir, senão 0/0 dava NaN.
-
-  O service calcula e devolve um objeto; quem imprime é o menu.
-*/
-
 import { listarCarregamentos } from '../2-repositories/carregamentoRepository.js'; // função que devolve todos os carregamentos do repositório
 
 export function dashboard() {
